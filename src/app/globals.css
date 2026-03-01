@@ -1,42 +1,231 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* MODERN THEME (Default) - Clean, Friendly, Professional */
+    --font-heading: var(--font-inter), sans-serif;
+    --font-body: var(--font-inter), sans-serif;
+    --radius: 0.75rem;
+    /* 12px - Friendly rounded */
+
+    --background: 210 40% 98%;
+    /* Soft cool gray */
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    /* Blue */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+  }
+
+  .dark {
+    /* Adjusted dark mode if needed... currently mapping to modern structure */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
   }
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
+/* THEME OVERRIDES - Outside layer base to ensure they override */
+.theme-classic {
+  /* CLASSIC THEME - Trust, Premium, Traditional */
+  --font-heading: var(--font-playfair), serif;
+  --font-body: var(--font-lato), sans-serif;
+  --radius: 0rem;
+  /* Sharp corners */
+
+  --background: 40 20% 99%;
+  /* Warm cream */
+  --foreground: 220 30% 15%;
+  /* Deep navy text */
+
+  --card: 0 0% 100%;
+  --card-foreground: 220 30% 15%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 30% 15%;
+
+  --primary: 220 35% 25%;
+  /* Navy Blue */
+  --primary-foreground: 45 30% 95%;
+  /* Gold/Cream text */
+
+  --secondary: 45 20% 90%;
+  /* Light Gold */
+  --secondary-foreground: 220 35% 20%;
+
+  --muted: 45 10% 94%;
+  --muted-foreground: 220 10% 40%;
+
+  --accent: 45 20% 90%;
+  --accent-foreground: 220 35% 20%;
+
+  --destructive: 0 60% 40%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 220 15% 85%;
+  --input: 220 15% 85%;
+  --ring: 220 35% 25%;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.theme-minimal {
+  /* MINIMAL THEME - Tech, Stark, High Contrast */
+  --font-heading: var(--font-space), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --radius: 0rem;
+
+  --background: 0 0% 100%;
+  /* Pure White */
+  --foreground: 0 0% 0%;
+  /* Pure Black */
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+
+  --primary: 0 0% 0%;
+  /* Black */
+  --primary-foreground: 0 0% 100%;
+  /* White */
+
+  --secondary: 0 0% 94%;
+  /* Light Gray */
+  --secondary-foreground: 0 0% 0%;
+
+  --muted: 0 0% 94%;
+  --muted-foreground: 0 0% 40%;
+
+  --accent: 0 0% 94%;
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 0% 20%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 0%;
+  /* Black Borders */
+  --input: 0 0% 0%;
+  --ring: 0 0% 0%;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+.theme-playful {
+  /* PLAYFUL THEME - Friendly, Soft, Pastel */
+  --font-heading: var(--font-quicksand), sans-serif;
+  --font-body: var(--font-quicksand), sans-serif;
+  --radius: 1.5rem;
+  /* Very rounded */
+
+  --background: 280 20% 98%;
+  /* Light Lilac tint */
+  --foreground: 260 20% 20%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 260 20% 20%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 260 20% 20%;
+
+  --primary: 262 83% 58%;
+  /* Violet */
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 320 70% 96%;
+  /* Pinkish */
+  --secondary-foreground: 262 83% 40%;
+
+  --muted: 260 20% 96%;
+  --muted-foreground: 260 10% 50%;
+
+  --accent: 320 70% 96%;
+  --accent-foreground: 262 83% 40%;
+
+  --destructive: 0 70% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 262 30% 90%;
+  --input: 262 30% 90%;
+  --ring: 262 83% 58%;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+@layer base {
+  * {
+    @apply border-border;
   }
+
+  body {
+    @apply bg-transparent text-foreground min-h-screen font-body transition-colors duration-500 ease-in-out;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading text-foreground;
+  }
+}
+
+/* Custom specific Overrides for the 3D Transforms that tailwind doesn't have by default */
+.perspective-2000 {
+  perspective: 2000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.rotate-x-12 {
+  transform: rotateX(12deg);
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
 }

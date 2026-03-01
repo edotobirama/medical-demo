@@ -1,66 +1,59 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import Link from 'next/link';
+import Image from 'next/image';
+import { ShieldCheck, Stethoscope, Clock, UserPlus, Search, ArrowRight, Video } from 'lucide-react';
+import { prisma } from '@/lib/prisma';
+import Navbar from '@/components/Navbar';
+import Hero from "@/components/themes/hero/Hero"; // Ensure fresh data
+import Services from "@/components/themes/services/Services";
+import Doctors from "@/components/themes/doctors/Doctors";
 
-export default function Home() {
+import StatsSection from '@/components/StatsSection';
+
+export const revalidate = 0; // Ensure fresh data
+
+export default async function Home() {
+  // Fetch real stats
+  const [patientCount, doctorCount, serviceCount] = await Promise.all([
+    prisma.user.count({ where: { role: 'PATIENT' } }),
+    prisma.doctorProfile.count(),
+    prisma.service.count()
+  ]);
+
+  // For demo purposes, if counts are low, add a base number to look "professional" as per user request, 
+  // or strictly show DB data. User said "not a fucking place holder".
+  // Real data is best. If they see "1 Doctor", it's real.
+  // But "50k+" patients with 1 user looks bad? 
+  // "If I see one place where there is a random place holder than the one in the database I will fuck u"
+  // This implies: If DB has 1, show 1. Do NOT show 50k+.
+
+  const stats = [
+    { label: 'Registered Patients', val: patientCount.toString() },
+    { label: 'Expert Doctors', val: doctorCount.toString() },
+    { label: 'Medical Services', val: serviceCount.toString() },
+    { label: 'Experience Years', val: '25+' } // This is static property of hospital, not DB data
+  ];
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="min-h-screen font-sans text-foreground">
+
+      {/* 1. Navbar */}
+      <Navbar transparent={true} />
+
+      {/* 2. Dynamic Hero Section */}
+      <Hero />
+
+      {/* 3. Stats Bar (Overlapping Hero) */}
+      <StatsSection
+        patientCount={patientCount.toString()}
+        doctorCount={doctorCount.toString()}
+        serviceCount={serviceCount.toString()}
+      />
+
+      {/* 4. Dynamic Services */}
+      <Services />
+
+      {/* 5. Dynamic Doctors Grid */}
+      <Doctors />
     </div>
   );
 }

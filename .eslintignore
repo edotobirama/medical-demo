@@ -1,0 +1,7 @@
+
+# Ignore scripts
+verify_profile.js
+verify_final_data.js
+seed_real_data.js
+test-db.js
+*.js

@@ -1,0 +1,28 @@
+{
+  "waitlist": [
+    {
+      "id": 1,
+      "name": "Existing Patient 1",
+      "email": "p1@test.com",
+      "status": "waiting",
+      "timestamp": "2026-02-02T11:48:21.176Z"
+    },
+    {
+      "id": 2,
+      "name": "Existing Patient 2",
+      "email": "p2@test.com",
+      "status": "notified",
+      "timestamp": "2026-02-02T11:48:21.176Z"
+    }
+  ],
+  "appointments": [
+    {
+      "id": 1,
+      "patientName": "Current User",
+      "type": "irl",
+      "date": "Today, 9:00 AM",
+      "doctor": "Dr. Sarah Smith",
+      "status": "Scheduled"
+    }
+  ]
+}
