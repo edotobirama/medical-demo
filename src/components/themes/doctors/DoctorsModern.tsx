@@ -1,12 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { doctorsData } from "./DoctorsData";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Star, ArrowRight, Calendar } from "lucide-react";
 
-export default function DoctorsModern() {
+export default function DoctorsModern({ doctors = [] }: { doctors?: any[] }) {
+    if (!doctors || doctors.length === 0) return null;
     return (
         <section className="py-24 relative overflow-hidden bg-transparent">
             <div className="container mx-auto px-6 relative z-10">
@@ -21,7 +22,7 @@ export default function DoctorsModern() {
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {doctorsData.map((doctor, index) => (
+                    {doctors.map((doctor, index) => (
                         <motion.div
                             key={index}
                             initial={{ opacity: 0, y: 20 }}
@@ -38,16 +39,21 @@ export default function DoctorsModern() {
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
 
-                                <div className="absolute bottom-0 left-0 p-6 w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                                <Link href={`/doctors/${doctor.id}`} className="absolute bottom-0 left-0 p-6 w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 hover:bg-white/20 transition-colors">
                                         <h3 className="text-xl font-bold text-white mb-1">{doctor.name}</h3>
-                                        <p className="text-blue-300 font-medium text-sm mb-3">{doctor.specialty}</p>
-                                        <div className="flex items-center gap-2 text-xs text-white/80">
+                                        <p className="text-blue-300 font-medium text-sm mb-3">
+                                            {doctor.specialty || doctor.doctorProfile?.specialization}
+                                        </p>
+                                        <div className="flex items-center gap-2 text-xs text-white/80 font-semibold mb-2">
                                             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                                            {doctor.rating} ({doctor.reviews} reviews)
+                                            {doctor.rating || 4.9} ({doctor.reviews || 120} reviews)
+                                        </div>
+                                        <div className="flex items-center gap-2 text-white font-bold text-sm">
+                                            View Profile <ArrowRight className="w-4 h-4" />
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             </div>
                         </motion.div>
                     ))}

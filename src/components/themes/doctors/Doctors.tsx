@@ -9,25 +9,25 @@ import DoctorsCyberpunk from "./DoctorsCyberpunk";
 import DoctorsNature from "./DoctorsNature";
 import DoctorsCorporate from "./DoctorsCorporate";
 
-export default function Doctors() {
+export default function Doctors({ doctors = [] }: { doctors?: any[] }) {
     const { theme } = useTheme();
 
     switch (theme) {
         case "modern":
-            return <DoctorsModern />;
+            return <DoctorsModern doctors={doctors} />;
         case "classic":
-            return <DoctorsClassic />;
+            return <DoctorsClassic doctors={doctors} />;
         case "minimal":
-            return <DoctorsMinimal />;
+            return <DoctorsMinimal doctors={doctors} />;
         case "playful":
-            return <DoctorsPlayful />;
+            return <DoctorsPlayful doctors={doctors} />;
         case "cyberpunk":
-            return <DoctorsCyberpunk />;
+            return <DoctorsCyberpunk doctors={doctors} />;
         case "nature":
-            return <DoctorsNature />;
+            return <DoctorsNature doctors={doctors} />;
         case "corporate":
-            return <DoctorsCorporate />;
+            return <DoctorsCorporate doctors={doctors} />;
         default:
-            return <DoctorsModern />;
+            return <DoctorsModern doctors={doctors} />;
     }
 }

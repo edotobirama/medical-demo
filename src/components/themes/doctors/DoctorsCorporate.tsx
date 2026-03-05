@@ -1,11 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { doctorsData } from "./DoctorsData";
+
 import Image from "next/image";
 import { ShieldCheck } from "lucide-react";
 
-export default function DoctorsCorporate() {
+import Link from "next/link";
+
+export default function DoctorsCorporate({ doctors = [] }: { doctors?: any[] }) {
+    if (!doctors || doctors.length === 0) return null;
     return (
         <section className="py-20 bg-slate-50 border-t border-slate-200">
             <div className="container mx-auto px-6">
@@ -17,7 +20,7 @@ export default function DoctorsCorporate() {
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {doctorsData.map((doctor, index) => (
+                    {doctors.map((doctor, index) => (
                         <div key={index} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow group">
                             <div className="relative h-64 w-full bg-slate-100">
                                 <Image
@@ -32,10 +35,10 @@ export default function DoctorsCorporate() {
                                     <ShieldCheck size={12} /> Certified
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900 mb-1">{doctor.name}</h3>
-                                <p className="text-slate-500 text-sm mb-4">{doctor.specialty}</p>
-                                <button className="w-full py-2 bg-slate-100 text-slate-700 font-semibold rounded hover:bg-blue-600 hover:text-white transition-colors text-sm">
+                                <p className="text-slate-500 text-sm mb-4">{doctor.specialty || doctor.doctorProfile?.specialization}</p>
+                                <Link href={`/doctors/${doctor.id}`} className="block w-full text-center py-2 bg-slate-100 text-slate-700 font-semibold rounded hover:bg-blue-600 hover:text-white transition-colors text-sm">
                                     View Profile
-                                </button>
+                                </Link>
                             </div>
                         </div>
                     ))}

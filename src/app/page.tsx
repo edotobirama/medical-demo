@@ -16,12 +16,18 @@ export default async function Home() {
   let patientCount = 0;
   let doctorCount = 0;
   let serviceCount = 0;
+  let featuredDoctors: any[] = [];
 
   try {
-    [patientCount, doctorCount, serviceCount] = await Promise.all([
+    [patientCount, doctorCount, serviceCount, featuredDoctors] = await Promise.all([
       prisma.user.count({ where: { role: 'PATIENT' } }),
       prisma.doctorProfile.count(),
-      prisma.service.count()
+      prisma.service.count(),
+      prisma.user.findMany({
+        where: { role: 'DOCTOR' },
+        include: { doctorProfile: true },
+        take: 4
+      })
     ]);
   } catch (error) {
     console.error("Database connection failed, using default stats:", error);
@@ -61,7 +67,7 @@ export default async function Home() {
       <Services />
 
       {/* 5. Dynamic Doctors Grid */}
-      <Doctors />
+      <Doctors doctors={featuredDoctors} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Calendar, CheckCircle, Clock, Users, Video, MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import SlotManager from "@/components/SlotManager";
 
 export const revalidate = 0;
 
@@ -127,6 +128,7 @@ export default async function DoctorDashboard() {
                 </div>
 
                 <div className="space-y-6">
+                    <SlotManager doctorProfileId={doctorProfile.id} />
                     <div className="glass-card bg-slate-900 text-white p-6">
                         <h3 className="text-lg font-bold mb-4">Urgent Notifications</h3>
                         <ul className="space-y-4">
