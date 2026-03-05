@@ -145,22 +145,39 @@ export default function BookPage() {
                                     No slots available. Please try again later.
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2">
-                                    {slots.map((slot) => (
-                                        <button
-                                            key={slot.id}
-                                            onClick={() => setSelectedSlot(slot)}
-                                            className={clsx(
-                                                "p-3 rounded-lg border flex flex-col items-center justify-center transition-all hover:shadow-md",
-                                                selectedSlot?.id === slot.id
-                                                    ? "border-teal-500 bg-teal-50 text-teal-700 ring-2 ring-teal-200"
-                                                    : "border-slate-200 hover:border-teal-300"
-                                            )}
-                                        >
-                                            <span className="font-bold text-lg">{format(new Date(slot.startTime), 'p')}</span>
-                                            <span className="text-xs text-slate-500 mt-1 truncate w-full text-center">{slot.doctor.user.name}</span>
-                                            <span className="text-[10px] text-slate-400 uppercase tracking-wide">{slot.doctor.specialization}</span>
-                                        </button>
+                                <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
+                                    {Object.values(slots.reduce((acc, slot) => {
+                                        const doctorName = slot.doctor.user.name;
+                                        if (!acc[doctorName]) {
+                                            acc[doctorName] = { doctor: slot.doctor, slots: [] };
+                                        }
+                                        acc[doctorName].slots.push(slot);
+                                        return acc;
+                                    }, {} as Record<string, { doctor: any, slots: Slot[] }>)).map(({ doctor, slots: doctorSlots }) => (
+                                        <div key={doctor.user.name} className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
+                                            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                                                <div>
+                                                    <h3 className="font-bold text-lg text-slate-800">{doctor.user.name}</h3>
+                                                    <p className="text-sm text-teal-600 font-medium">{doctor.specialization}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {doctorSlots.map((slot) => (
+                                                    <button
+                                                        key={slot.id}
+                                                        onClick={() => setSelectedSlot(slot)}
+                                                        className={clsx(
+                                                            "px-4 py-2 rounded-lg border text-sm transition-all hover:shadow-sm font-medium",
+                                                            selectedSlot?.id === slot.id
+                                                                ? "border-teal-500 bg-teal-50 text-teal-700 ring-2 ring-teal-200"
+                                                                : "border-slate-200 hover:border-teal-400 text-slate-700 bg-slate-50"
+                                                        )}
+                                                    >
+                                                        {format(new Date(slot.startTime), 'MMM d, h:mm a')}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     ))}
                                 </div>
                             )}

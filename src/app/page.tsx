@@ -13,11 +13,19 @@ export const revalidate = 0; // Ensure fresh data
 
 export default async function Home() {
   // Fetch real stats
-  const [patientCount, doctorCount, serviceCount] = await Promise.all([
-    prisma.user.count({ where: { role: 'PATIENT' } }),
-    prisma.doctorProfile.count(),
-    prisma.service.count()
-  ]);
+  let patientCount = 0;
+  let doctorCount = 0;
+  let serviceCount = 0;
+
+  try {
+    [patientCount, doctorCount, serviceCount] = await Promise.all([
+      prisma.user.count({ where: { role: 'PATIENT' } }),
+      prisma.doctorProfile.count(),
+      prisma.service.count()
+    ]);
+  } catch (error) {
+    console.error("Database connection failed, using default stats:", error);
+  }
 
   // For demo purposes, if counts are low, add a base number to look "professional" as per user request, 
   // or strictly show DB data. User said "not a fucking place holder".

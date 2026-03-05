@@ -17,13 +17,14 @@ async function main() {
     console.log('Seeding services...');
     await prisma.service.createMany({
         data: [
+            // Consultations
             {
                 name: 'General Consultation',
                 description: 'Basic health checkup and consultation with a general physician.',
                 category: 'CONSULTATION',
                 price: 50,
                 duration: 30,
-                image: '/images/doctor-sarah.jpg'
+                image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80'
             },
             {
                 name: 'Full Body Checkup',
@@ -31,79 +32,101 @@ async function main() {
                 category: 'CHECKUP',
                 price: 150,
                 duration: 60,
-                image: '/images/services/treatment_surgery.png'
+                image: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=800&q=80'
             },
+
+            // Imaging & Scans
             {
                 name: 'MRI Scan',
                 description: 'High-resolution magnetic resonance imaging for detailed body analysis.',
                 category: 'SCAN',
                 price: 300,
                 duration: 45,
-                image: '/images/services/infrastructure_mri.png'
+                image: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=800&q=80'
             },
             {
-                name: 'Cardiology Screening',
-                description: 'Specialized heart health assessment including Echo and TMT.',
-                category: 'CHECKUP',
-                price: 200,
-                duration: 45,
-                image: '/images/services/treatment_surgery.png'
+                name: 'CT Scan (Head & Body)',
+                description: 'Computed Tomography scan for detailed 3D internal imaging.',
+                category: 'SCAN',
+                price: 250,
+                duration: 30,
+                image: 'https://images.unsplash.com/photo-1530497610245-94d3ce57e31d?auto=format&fit=crop&w=800&q=80'
             },
+            {
+                name: 'PET Scan',
+                description: 'Positron Emission Tomography for detecting cellular level metabolic changes.',
+                category: 'SCAN',
+                price: 450,
+                duration: 60,
+                image: 'https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?auto=format&fit=crop&w=800&q=80'
+            },
+            {
+                name: 'X-Ray (Digital)',
+                description: 'Rapid digital X-Ray imaging for bones and chest.',
+                category: 'SCAN',
+                price: 60,
+                duration: 15,
+                image: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80'
+            },
+            {
+                name: 'Ultrasound',
+                description: 'Non-invasive diagnostic imaging using high-frequency sounds.',
+                category: 'SCAN',
+                price: 100,
+                duration: 20,
+                image: 'https://images.unsplash.com/photo-1527613426400-9ce99653c82e?auto=format&fit=crop&w=800&q=80'
+            },
+
+            // Labs
             {
                 name: 'Blood Test (CBC)',
                 description: 'Complete blood count analysis.',
                 category: 'LAB',
                 price: 20,
                 duration: 10,
-                image: '/images/services/treatment_surgery.png'
+                image: 'https://images.unsplash.com/photo-1579154492231-4a5f333918d6?auto=format&fit=crop&w=800&q=80'
             },
             {
-                name: 'Dental Cleaning',
-                description: 'Professional teeth cleaning and scaling.',
-                category: 'TREATMENT',
-                price: 80,
+                name: 'Cardiology Screening (ECG/TMT)',
+                description: 'Specialized heart health assessment including Echo and TMT.',
+                category: 'CHECKUP',
+                price: 200,
                 duration: 45,
-                image: '/images/services/treatment_surgery.png'
+                image: 'https://images.unsplash.com/photo-1628348068343-c6a848d2b6dd?auto=format&fit=crop&w=800&q=80'
             },
-            {
-                name: 'X-Ray (Chest)',
-                description: 'Digital X-Ray imaging for chest and lungs.',
-                category: 'SCAN',
-                price: 60,
-                duration: 15,
-                image: '/images/services/infrastructure_mri.png'
-            },
-            {
-                name: 'Root Canal Treatment',
-                description: 'Endodontic therapy for infected tooth pulp.',
-                category: 'TREATMENT',
-                price: 350,
-                duration: 90,
-                image: '/images/services/treatment_surgery.png'
-            },
-            {
-                name: 'Physical Therapy Session',
-                description: 'Rehabilitation session with a certified physiotherapist.',
-                category: 'TREATMENT',
-                price: 75,
-                duration: 60,
-                image: '/images/services/treatment_surgery.png'
-            },
+
+            // Infrastructure
             {
                 name: 'Advanced Operation Theater',
                 description: 'State of the art sterile surgery rooms equipped for complex procedures.',
                 category: 'INFRASTRUCTURE',
                 price: 0,
                 duration: 0,
-                image: '/images/services/treatment_surgery.png'
+                image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80'
+            },
+            {
+                name: 'Intensive Care Unit (ICU)',
+                description: '24/7 highly monitored critical care with dedicated nursing.',
+                category: 'INFRASTRUCTURE',
+                price: 500,
+                duration: 1440,
+                image: 'https://images.unsplash.com/photo-1583912265927-8cbaf12f9d51?auto=format&fit=crop&w=800&q=80'
             },
             {
                 name: 'Dialysis Center',
-                description: '24/7 Dialysis support with comfortable seating and monitoring.',
+                description: 'Comfortable 24/7 Dialysis support with entertainment screens.',
                 category: 'INFRASTRUCTURE',
                 price: 100,
                 duration: 240,
-                image: '/images/services/infrastructure_mri.png'
+                image: 'https://images.unsplash.com/photo-1631815589968-fdb09a223f1e?auto=format&fit=crop&w=800&q=80'
+            },
+            {
+                name: 'Executive Waiting Lounge',
+                description: 'Premium waiting areas with complimentary refreshments and Wi-Fi.',
+                category: 'INFRASTRUCTURE',
+                price: 0,
+                duration: 0,
+                image: 'https://images.unsplash.com/photo-1510074377623-8cf13fb86fc8?auto=format&fit=crop&w=800&q=80'
             }
         ]
     });
@@ -118,31 +141,28 @@ async function main() {
             {
                 title: 'Community Wellness Day',
                 description: 'Free yoga, meditation, and health checkups in our hospital garden.',
-                date: new Date(new Date().setDate(new Date().getDate() + 7)), // 1 week from now
-                image: '/images/services/event_wellness.png',
+                date: new Date(new Date().setDate(new Date().getDate() + 7)),
+                image: 'https://images.unsplash.com/photo-1544367567-0f2feb0594a0?auto=format&fit=crop&w=800&q=80',
                 location: 'Hospital Garden'
             },
             {
                 title: 'Blood Donation Camp',
                 description: 'Join us in saving lives. Every drop counts.',
                 date: new Date(new Date().setDate(new Date().getDate() + 14)),
-                image: '/images/services/treatment_surgery.png',
+                image: 'https://images.unsplash.com/photo-1615461066841-6116e61058f4?auto=format&fit=crop&w=800&q=80',
                 location: 'Main Hall'
             },
             {
                 title: 'Child Nutrition Workshop',
                 description: 'Expert advice for parents on healthy eating habits for kids.',
                 date: new Date(new Date().setDate(new Date().getDate() + 21)),
-                image: '/images/services/event_wellness.png',
+                image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80',
                 location: 'Conference Room B'
             }
         ]
     });
 
-    console.log('Services and Programs seeded. Exiting.');
-    return; // SKIP THE REST FOR NOW
-
-    const password = await bcrypt.hash('password123', 10);
+    console.log('Services and Programs seeded. Next: users & doctors...'); const password = await bcrypt.hash('password123', 10);
 
     // 1. Create Patient
     const patient = await prisma.user.upsert({
@@ -173,7 +193,7 @@ async function main() {
             name: 'Dr. Sarah Wilson',
             password,
             role: 'DOCTOR',
-            image: '/images/doctor-sarah.jpg',
+            image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80',
             doctorProfile: {
                 create: {
                     specialization: 'Cardiology',
@@ -215,7 +235,7 @@ async function main() {
             name: 'Dr. James Chen',
             password,
             role: 'DOCTOR',
-            image: '/images/doctor-james.jpg',
+            image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=800&q=80',
             doctorProfile: {
                 create: {
                     specialization: 'Neurology',
@@ -224,22 +244,94 @@ async function main() {
                     consultationFee: 200,
                     bio: 'Specializing in complex neurosurgery and cognitive health.',
                     achievements: JSON.stringify(['Best Surgeon Award', 'Chief of Neurology']),
-                    /*
                     slots: {
-                          create: [
-                              {
-                                  startTime: new Date(new Date().setHours(9, 0, 0, 0)),
-                                  endTime: new Date(new Date().setHours(10, 0, 0, 0)),
-                                  status: 'AVAILABLE'
-                              },
-                              {
-                                  startTime: new Date(new Date().setHours(15, 0, 0, 0)),
-                                  endTime: new Date(new Date().setHours(16, 0, 0, 0)),
-                                  status: 'AVAILABLE'
-                              }
-                          ]
-                      }
-                      */
+                        create: [
+                            {
+                                startTime: new Date(new Date().setHours(9, 0, 0, 0)),
+                                endTime: new Date(new Date().setHours(10, 0, 0, 0)),
+                                status: 'AVAILABLE'
+                            },
+                            {
+                                startTime: new Date(new Date().setHours(15, 0, 0, 0)),
+                                endTime: new Date(new Date().setHours(16, 0, 0, 0)),
+                                status: 'AVAILABLE'
+                            }
+                        ]
+                    }
+                },
+            },
+        },
+    });
+
+    // Doctor C: Orthopedics
+    const doctor3 = await prisma.user.upsert({
+        where: { email: 'ortho@hospital.com' },
+        update: {},
+        create: {
+            email: 'ortho@hospital.com',
+            name: 'Dr. Alan Davies',
+            password,
+            role: 'DOCTOR',
+            image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=800&q=80',
+            doctorProfile: {
+                create: {
+                    specialization: 'Orthopedic Surgery',
+                    department: 'Orthopedics',
+                    licenseNumber: 'ORTHO-303',
+                    consultationFee: 180,
+                    bio: 'Renowned orthopedic surgeon focused on joint replacements and sports injuries.',
+                    achievements: JSON.stringify(['Olympic Team Doctor', '10,000+ Surgeries']),
+                    slots: {
+                        create: [
+                            {
+                                startTime: new Date(new Date().setHours(12, 0, 0, 0)),
+                                endTime: new Date(new Date().setHours(13, 0, 0, 0)),
+                                status: 'AVAILABLE'
+                            },
+                            {
+                                startTime: new Date(new Date().setHours(16, 0, 0, 0)),
+                                endTime: new Date(new Date().setHours(17, 0, 0, 0)),
+                                status: 'AVAILABLE'
+                            }
+                        ]
+                    }
+                },
+            },
+        },
+    });
+
+    // Doctor D: Ophthalmology
+    const doctor4 = await prisma.user.upsert({
+        where: { email: 'eye@hospital.com' },
+        update: {},
+        create: {
+            email: 'eye@hospital.com',
+            name: 'Dr. Emily Rostova',
+            password,
+            role: 'DOCTOR',
+            image: 'https://images.unsplash.com/photo-1594824436998-0570b691079d?auto=format&fit=crop&w=800&q=80',
+            doctorProfile: {
+                create: {
+                    specialization: 'Ophthalmology',
+                    department: 'Eye Care',
+                    licenseNumber: 'OPH-404',
+                    consultationFee: 120,
+                    bio: 'Expert in LASIK surgery and advanced retinal treatments.',
+                    achievements: JSON.stringify(['Visionary Leader 2024', 'Laser Tech Pioneer']),
+                    slots: {
+                        create: [
+                            {
+                                startTime: new Date(new Date().setHours(8, 0, 0, 0)),
+                                endTime: new Date(new Date().setHours(9, 0, 0, 0)),
+                                status: 'AVAILABLE'
+                            },
+                            {
+                                startTime: new Date(new Date().setHours(13, 0, 0, 0)),
+                                endTime: new Date(new Date().setHours(14, 0, 0, 0)),
+                                status: 'AVAILABLE'
+                            }
+                        ]
+                    }
                 },
             },
         },
@@ -255,97 +347,6 @@ async function main() {
             password,
             role: 'ADMIN',
         },
-    });
-
-    // 4. Create Services
-    // ... code is safe as I didn't add waitlist to seed yet ...
-    await prisma.service.createMany({
-        data: [
-            {
-                name: 'General Consultation',
-                description: 'Basic health checkup and consultation with a general physician.',
-                category: 'CONSULTATION',
-                price: 50,
-                duration: 30,
-            },
-            {
-                name: 'Full Body Checkup',
-                description: 'Comprehensive health screening including blood tests, ECG, and vitals.',
-                category: 'CHECKUP',
-                price: 150,
-                duration: 60,
-            },
-            {
-                name: 'MRI Scan',
-                description: 'High-resolution magnetic resonance imaging for detailed body analysis.',
-                category: 'SCAN',
-                price: 300,
-                duration: 45,
-            },
-            {
-                name: 'Cardiology Screening',
-                description: 'Specialized heart health assessment including Echo and TMT.',
-                category: 'CHECKUP',
-                price: 200,
-                duration: 45,
-            },
-            {
-                name: 'Blood Test (CBC)',
-                description: 'Complete blood count analysis.',
-                category: 'LAB',
-                price: 20,
-                duration: 10,
-            },
-            {
-                name: 'Dental Cleaning',
-                description: 'Professional teeth cleaning and scaling.',
-                category: 'TREATMENT',
-                price: 80,
-                duration: 45,
-            },
-            {
-                name: 'X-Ray (Chest)',
-                description: 'Digital X-Ray imaging for chest and lungs.',
-                category: 'SCAN',
-                price: 60,
-                duration: 15,
-            },
-            {
-                name: 'Root Canal Treatment',
-                description: 'Endodontic therapy for infected tooth pulp.',
-                category: 'TREATMENT',
-                price: 350,
-                duration: 90,
-            },
-            {
-                name: 'Physical Therapy Session',
-                description: 'Rehabilitation session with a certified physiotherapist.',
-                category: 'TREATMENT',
-                price: 75,
-                duration: 60,
-            },
-            {
-                name: 'Dermatology Consultation',
-                description: 'Skin health analysis and acne treatment planning.',
-                category: 'CONSULTATION',
-                price: 90,
-                duration: 30,
-            },
-            {
-                name: 'CT Scan (Head)',
-                description: 'Computed Tomography scan for detailed brain imaging.',
-                category: 'SCAN',
-                price: 250,
-                duration: 30,
-            },
-            {
-                name: 'Nutrition Counseling',
-                description: 'Personalized diet plan and nutritional advice.',
-                category: 'CONSULTATION',
-                price: 60,
-                duration: 45,
-            }
-        ]
     });
 
     console.log('Seeding completed successfully.');

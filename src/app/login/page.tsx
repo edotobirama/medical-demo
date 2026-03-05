@@ -9,7 +9,9 @@ import clsx from 'clsx';
 
 import { useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+import { Suspense } from 'react';
+
+function LoginContent() {
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get('callbackUrl') || '/patient';
 
@@ -164,5 +166,13 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <LoginContent />
+        </Suspense>
     );
 }

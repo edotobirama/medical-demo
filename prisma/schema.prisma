@@ -6,34 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-  // url      = "postgresql://postgres@localhost:5433/hospital_portal"
-}
-
-enum UserRole {
-  PATIENT
-  DOCTOR
-  ADMIN
-}
-
-enum AppointmentStatus {
-  PENDING
-  CONFIRMED
-  COMPLETED
-  CANCELLED
-  NO_SHOW
-}
-
-enum AppointmentType {
-  ONLINE
-  OFFLINE
-}
-
-enum SlotStatus {
-  AVAILABLE
-  LOCKED
-  BOOKED
 }
 
 model User {
@@ -41,7 +15,7 @@ model User {
   name          String?
   email         String    @unique
   password      String?   // Hashed
-  role          UserRole  @default(PATIENT)
+  role          String    @default("PATIENT")
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -65,15 +39,15 @@ model DoctorProfile {
   licenseNumber  String?
   bio            String?
   department     String?
-  consultationFee Decimal @default(0)
+  consultationFee Float  @default(0)
   
   achievements   String?   // JSON string
   rating         Float     @default(5.0)
   reviews        Int       @default(0)
   
-  waitlistEntries       WaitlistEntry[]
-  slots                 Slot[]
-  appointments          Appointment[]
+  waitlistEntries WaitlistEntry[]
+  slots           Slot[]
+  appointments    Appointment[]
 }
 
 model WaitlistEntry {
@@ -112,8 +86,8 @@ model Slot {
   
   startTime DateTime
   endTime   DateTime
-  status    SlotStatus @default(AVAILABLE)
-  type      AppointmentType @default(OFFLINE) // Default to offline/in-person
+  status    String     @default("AVAILABLE")
+  type      String     @default("OFFLINE") // Default to offline/in-person
   
   // Concurrency handling
   lockedAt  DateTime?
@@ -135,8 +109,8 @@ model Appointment {
   slotId    String            @unique
   slot      Slot              @relation(fields: [slotId], references: [id])
   
-  status    AppointmentStatus @default(PENDING)
-  type      AppointmentType
+  status    String            @default("PENDING")
+  type      String
   
   meetingLink String?       // For Online
   notes       String?       // Doctor's notes
@@ -158,9 +132,9 @@ model MedicalReport {
   fileType  String   // PDF, JPG, etc.
   
   // AI Analysis (Stored as JSON for flexibility)
-  aiSummary      String?   @db.Text
-  aiFlags        Json?     // Red flags, abnormal values
-  aiPatientNotes String?   @db.Text
+  aiSummary      String?
+  aiFlags        String?     // Red flags, abnormal values
+  aiPatientNotes String?
   
   createdAt DateTime @default(now())
 }
@@ -172,7 +146,7 @@ model AuditLog {
   
   action    String
   resource  String
-  details   Json?
+  details   String?
   ipAddress String?
   
   createdAt DateTime @default(now())
@@ -186,7 +160,6 @@ model Message {
   content   String
   createdAt DateTime @default(now())
   
-  // This is a simplified chat model. 
   // For a full system, you'd add ChatRooms/Sessions linking patients and doctors.
   chatRoomId String?
 }
@@ -196,7 +169,7 @@ model Service {
   name        String
   description String
   category    String   // CONSULTATION, LAB, SCAN, TREATMENT
-  price       Decimal  @default(0)
+  price       Float    @default(0)
   duration    Int      // minutes
   image       String?
   

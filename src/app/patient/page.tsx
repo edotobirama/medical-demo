@@ -141,7 +141,7 @@ export default async function PatientDashboard() {
 
                         {upcomingAppointments.length > 0 ? (
                             <div className="space-y-4">
-                                {upcomingAppointments.map(app => (
+                                {upcomingAppointments.map((app: any) => (
                                     <div key={app.id} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center gap-5 group">
                                         <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 transition-colors ${app.type === 'ONLINE' ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-100' : 'bg-blue-50 text-blue-600 group-hover:bg-blue-100'}`}>
                                             {app.type === 'ONLINE' ? <Video size={24} /> : <MapPin size={24} />}
@@ -160,7 +160,11 @@ export default async function PatientDashboard() {
                                         </div>
                                         <div className="flex gap-2 w-full sm:w-auto">
                                             <button className="flex-1 sm:flex-none btn btn-outline px-4 py-2 text-xs">Reschedule</button>
-                                            <button className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs">Join/Details</button>
+                                            {app.type === 'ONLINE' ? (
+                                                <Link href={`/video/${app.id}`} className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs">Join Video</Link>
+                                            ) : (
+                                                <button className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs">Directions</button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -200,7 +204,7 @@ export default async function PatientDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {reports.map((report) => (
+                                        {reports.map((report: any) => (
                                             <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="p-4 font-medium text-gray-900 flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center">

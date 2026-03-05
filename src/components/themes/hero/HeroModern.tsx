@@ -43,10 +43,6 @@ export default function HeroModern() {
                                 Book Now <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </span>
                         </Link>
-
-                        <Link href="/video-tour" className="px-8 py-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm text-white font-medium hover:bg-white/10 transition-all flex items-center justify-center gap-2 hover:border-white/20">
-                            <Play className="w-4 h-4 fill-current" /> Watch Tour
-                        </Link>
                     </div>
 
                     {/* Stats/Trust */}
@@ -151,7 +147,7 @@ export default function HeroModern() {
                         <div className="absolute top-0 right-[-100px] w-64 h-64 border border-dashed border-white/10 rounded-full animate-spin-slow z-10" style={{ animationDuration: '20s' }} />
                     </motion.div>
                 </div>
-            </div>
-        </section>
+            </div >
+        </section >
     );
 }
