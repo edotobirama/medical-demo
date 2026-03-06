@@ -2,7 +2,7 @@ import { auth, signOut } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { UserPlus, Users, Stethoscope, Calendar, LogOut, Shield, Trash2 } from 'lucide-react';
+import { UserPlus, Users, Stethoscope, Calendar, LogOut, Shield, Trash2, Mail } from 'lucide-react';
 
 export default async function AdminDashboard() {
     const session = await auth();
@@ -11,10 +11,11 @@ export default async function AdminDashboard() {
     }
 
     // Fetch stats
-    const [totalDoctors, totalPatients, totalAppointments, doctors] = await Promise.all([
+    const [totalDoctors, totalPatients, totalAppointments, totalMessages, doctors] = await Promise.all([
         prisma.user.count({ where: { role: 'DOCTOR' } }),
         prisma.user.count({ where: { role: 'PATIENT' } }),
         prisma.appointment.count(),
+        prisma.contactMessage.count(),
         prisma.user.findMany({
             where: { role: 'DOCTOR' },
             include: { doctorProfile: true },
@@ -54,7 +55,7 @@ export default async function AdminDashboard() {
 
             <div className="container py-8">
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                     <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <span className="text-sm text-muted-foreground font-medium">Total Doctors</span>
@@ -82,6 +83,15 @@ export default async function AdminDashboard() {
                         </div>
                         <p className="text-3xl font-bold text-card-foreground">{totalAppointments}</p>
                     </div>
+                    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-sm text-muted-foreground font-medium">Messages</span>
+                            <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center">
+                                <Mail size={20} className="text-violet-500" />
+                            </div>
+                        </div>
+                        <p className="text-3xl font-bold text-card-foreground">{totalMessages}</p>
+                    </div>
                 </div>
 
                 {/* Add Doctor CTA */}
@@ -92,6 +102,17 @@ export default async function AdminDashboard() {
                     </div>
                     <Link href="/admin/add-doctor" className="flex items-center gap-2 px-6 py-3 bg-white text-violet-700 font-bold rounded-xl hover:bg-white/90 transition-all shadow-lg whitespace-nowrap">
                         <UserPlus size={20} /> Add Doctor
+                    </Link>
+                </div>
+
+                {/* View Messages CTA */}
+                <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-8 mb-10 flex flex-col sm:flex-row items-center justify-between gap-6 text-white shadow-xl">
+                    <div>
+                        <h2 className="text-2xl font-bold mb-1">Contact Messages</h2>
+                        <p className="text-white/70">{totalMessages} messages from visitors. Review and respond.</p>
+                    </div>
+                    <Link href="/admin/messages" className="flex items-center gap-2 px-6 py-3 bg-white text-blue-700 font-bold rounded-xl hover:bg-white/90 transition-all shadow-lg whitespace-nowrap">
+                        <Mail size={20} /> View Messages
                     </Link>
                 </div>
 

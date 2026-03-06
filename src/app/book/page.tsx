@@ -68,11 +68,11 @@ export default function BookPage() {
     };
 
     return (
-        <div className="container py-20 min-h-screen">
+        <div className="container py-20 min-h-screen bg-background text-foreground">
             <div className="max-w-2xl mx-auto">
                 <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">Book Your Appointment</h1>
-                    <p className="text-slate-600 dark:text-slate-300">Scheduled for better health in 3 simple steps.</p>
+                    <h1 className="text-4xl font-bold text-foreground mb-4">Book Your Appointment</h1>
+                    <p className="text-muted-foreground">Scheduled for better health in 3 simple steps.</p>
                 </div>
 
                 {/* Steps Indicator */}

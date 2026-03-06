@@ -3,25 +3,25 @@ import Navbar from "@/components/Navbar";
 
 export default function VisitingHoursPage() {
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+        <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
             <Navbar transparent={false} />
             <div className="flex-1 container mx-auto px-6 py-24 max-w-4xl">
                 <div className="text-center mb-16">
-                    <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 font-heading">Visiting Hours</h1>
-                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                    <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 font-heading">Visiting Hours</h1>
+                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                         Family and friends are an important part of the healing process. Review our visiting guidelines and departmental hours below.
                     </p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-8 mb-12">
-                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="bg-card p-8 rounded-2xl shadow-sm border border-slate-100">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="bg-blue-100 p-3 rounded-xl text-blue-600">
                                 <Users size={24} />
                             </div>
-                            <h2 className="text-xl font-bold text-slate-900">General Wards</h2>
+                            <h2 className="text-xl font-bold text-foreground">General Wards</h2>
                         </div>
-                        <ul className="space-y-4 text-slate-600">
+                        <ul className="space-y-4 text-muted-foreground">
                             <li className="flex justify-between border-b pb-2">
                                 <span className="font-semibold">Morning</span>
                                 <span>10:00 AM - 12:00 PM</span>
@@ -34,14 +34,14 @@ export default function VisitingHoursPage() {
                         </ul>
                     </div>
 
-                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="bg-card p-8 rounded-2xl shadow-sm border border-slate-100">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="bg-rose-100 p-3 rounded-xl text-rose-600">
                                 <Clock size={24} />
                             </div>
-                            <h2 className="text-xl font-bold text-slate-900">ICU & Critical Care</h2>
+                            <h2 className="text-xl font-bold text-foreground">ICU & Critical Care</h2>
                         </div>
-                        <ul className="space-y-4 text-slate-600">
+                        <ul className="space-y-4 text-muted-foreground">
                             <li className="flex justify-between border-b pb-2">
                                 <span className="font-semibold">Morning</span>
                                 <span>11:00 AM - 11:30 AM</span>

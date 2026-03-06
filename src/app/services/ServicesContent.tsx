@@ -47,7 +47,7 @@ export default function ServicesContent({
                 isDark ? "bg-slate-950 text-white selection:bg-cyan-500/30" :
                     isNature ? "bg-[#F1F0E8] text-[#2C362B]" :
                         isPlayful ? "bg-rose-50 text-rose-900" :
-                            "bg-white text-slate-900"
+                            "bg-background text-foreground"
         )}>
             <Navbar />
 

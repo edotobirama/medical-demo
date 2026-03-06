@@ -53,34 +53,34 @@ function MessagesChat() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+        <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
             <Navbar />
             <div className="h-20"></div> {/* Spacer for Navbar */}
 
             <div className="flex-1 container mx-auto py-6 flex flex-col lg:flex-row gap-6 max-h-[calc(100vh-80px)]">
 
                 {/* Sidebar - Chat List (Hidden on mobile when chat is active) */}
-                <div className="hidden lg:flex flex-col w-1/3 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0">
-                    <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                        <h2 className="font-bold text-lg text-slate-800">Recent Conversations</h2>
+                <div className="hidden lg:flex flex-col w-1/3 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex-shrink-0">
+                    <div className="p-4 border-b border-border bg-secondary/50">
+                        <h2 className="font-bold text-lg text-card-foreground">Recent Conversations</h2>
                         <input
                             type="text"
                             placeholder="Search messages..."
-                            className="w-full mt-3 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                            className="w-full mt-3 px-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground"
                         />
                     </div>
 
                     <div className="overflow-y-auto flex-1">
                         {/* Active Chat Item */}
-                        <div className="p-4 border-b border-slate-100 bg-teal-50/30 cursor-pointer hover:bg-slate-50 transition-colors flex items-center justify-between group relative overflow-hidden">
+                        <div className="p-4 border-b border-border bg-primary/10 cursor-pointer hover:bg-secondary transition-colors flex items-center justify-between group relative overflow-hidden">
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500"></div>
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center text-teal-700 font-bold border-2 border-white shadow-sm">
                                     {patientIdParam ? "JD" : "DS"}
                                 </div>
                                 <div>
-                                    <h4 className="font-bold text-slate-800 text-sm">{patientIdParam ? "John Doe" : "Dr. Sarah Wilson"}</h4>
-                                    <p className="text-xs text-slate-500 truncate w-40">That is excellent news. Let's...</p>
+                                    <h4 className="font-bold text-foreground text-sm">{patientIdParam ? "John Doe" : "Dr. Sarah Wilson"}</h4>
+                                    <p className="text-xs text-muted-foreground truncate w-40">That is excellent news. Let's...</p>
                                 </div>
                             </div>
                             <div className="text-[10px] text-slate-400 font-medium">10:18 AM</div>
@@ -94,8 +94,8 @@ function MessagesChat() {
                                         M
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-800 text-sm">System Update</h4>
-                                        <p className="text-xs text-slate-500 truncate w-40">Your lab results are ready to v...</p>
+                                        <h4 className="font-bold text-foreground text-sm">System Update</h4>
+                                        <p className="text-xs text-muted-foreground truncate w-40">Your lab results are ready to v...</p>
                                     </div>
                                 </div>
                                 <div className="text-[10px] text-slate-400 font-medium">Yesterday</div>
@@ -105,12 +105,12 @@ function MessagesChat() {
                 </div>
 
                 {/* Main Chat Area */}
-                <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-140px)]">
+                <div className="flex-1 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-[calc(100vh-140px)]">
 
                     {/* Chat Header */}
-                    <div className="px-6 py-4 border-b border-slate-100 bg-white flex justify-between items-center shadow-sm z-10">
+                    <div className="px-6 py-4 border-b border-border bg-card flex justify-between items-center shadow-sm z-10">
                         <div className="flex items-center gap-4">
-                            <Link href={patientIdParam ? "/doctor" : "/patient"} className="lg:hidden p-2 -ml-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
+                            <Link href={patientIdParam ? "/doctor" : "/patient"} className="lg:hidden p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-secondary">
                                 <ArrowLeft size={20} />
                             </Link>
                             <div className="relative">
@@ -120,7 +120,7 @@ function MessagesChat() {
                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                             </div>
                             <div>
-                                <h3 className="font-bold text-slate-800">{patientIdParam ? "John Doe" : "Dr. Sarah Wilson"}</h3>
+                                <h3 className="font-bold text-card-foreground">{patientIdParam ? "John Doe" : "Dr. Sarah Wilson"}</h3>
                                 <p className="text-xs text-emerald-600 font-medium">Online</p>
                             </div>
                         </div>
@@ -138,7 +138,7 @@ function MessagesChat() {
                     </div>
 
                     {/* Chat Messages */}
-                    <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 space-y-6">
+                    <div className="flex-1 overflow-y-auto p-6 bg-secondary/50 space-y-6">
                         <div className="text-center">
                             <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider bg-slate-200/50 px-3 py-1 rounded-full">Today</span>
                         </div>
@@ -204,7 +204,7 @@ function MessagesChat() {
 
 export default function MessagesPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading Messages...</div>}>
+        <Suspense fallback={<div className="min-h-screen bg-background text-foreground flex items-center justify-center">Loading Messages...</div>}>
             <MessagesChat />
         </Suspense>
     );

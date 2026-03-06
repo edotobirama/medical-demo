@@ -8,6 +8,7 @@ export const revalidate = 0; // Ensure fresh data on every request
 
 export default async function DoctorsPage() {
     const doctors = await prisma.doctorProfile.findMany({
+        where: { isAvailable: true },
         include: {
             user: true,
             slots: {
@@ -22,7 +23,7 @@ export default async function DoctorsPage() {
     });
 
     return (
-        <div className="min-h-screen bg-transparent font-sans text-foreground pb-20">
+        <div className="min-h-screen bg-background font-sans text-foreground pb-20">
             <Navbar />
 
             {/* Spacer for fixed Navbar */}

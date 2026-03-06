@@ -1,8 +1,10 @@
 "use client";
 
 import Navbar from '@/components/Navbar';
-import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, Send, CheckCircle, Loader2 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import { sendContactMessage } from '@/lib/actions';
+import { useActionState } from 'react';
 import clsx from 'clsx';
 
 export default function ContactPage() {
@@ -11,6 +13,8 @@ export default function ContactPage() {
     const isDark = ['modern', 'cyberpunk'].includes(theme);
     const isNature = theme === 'nature';
     const isPlayful = theme === 'playful';
+
+    const [state, formAction, isPending] = useActionState(sendContactMessage, null);
 
     return (
         <div className={clsx(
@@ -98,15 +102,24 @@ export default function ContactPage() {
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-12 items-start">
-                    {/* Map Placeholder */}
+                    {/* Google Maps Embed */}
                     <div className={clsx(
-                        "rounded-2xl h-[400px] w-full flex items-center justify-center font-bold",
-                        isMinimal ? "bg-zinc-100 border-4 border-black rounded-none text-black uppercase tracking-widest" :
-                            isDark ? "bg-white/5 border border-white/10 backdrop-blur text-slate-500" :
-                                isNature ? "bg-[#E5E9DF] text-[#4A5D45]" :
-                                    "bg-muted text-muted-foreground border border-border"
+                        "rounded-2xl h-[400px] w-full overflow-hidden",
+                        isMinimal ? "border-4 border-black rounded-none" :
+                            isDark ? "border border-white/10" :
+                                isNature ? "shadow-md" :
+                                    "border border-border shadow-sm"
                     )}>
-                        Interactive Map Integration
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.2!2d-73.9857!3d40.7484!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c259a9b3117469%3A0xd134e199a405a163!2sEmpire%20State%20Building!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus"
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            title="Grandview Medical Center Location"
+                        />
                     </div>
 
                     {/* Form */}
@@ -119,11 +132,27 @@ export default function ContactPage() {
                                         "bg-card shadow-sm border border-border"
                     )}>
                         <h2 className={clsx("text-2xl font-bold mb-6", isMinimal ? "uppercase font-black" : isDark ? "text-white" : "")}>Send us a Message</h2>
-                        <form className="space-y-4">
+
+                        {/* Success */}
+                        {state?.success && (
+                            <div className="mb-6 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3 text-emerald-500 font-medium">
+                                <CheckCircle size={20} />
+                                Message sent successfully! We&#39;ll get back to you soon.
+                            </div>
+                        )}
+
+                        {/* Error */}
+                        {state?.error && (
+                            <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-500 font-medium">
+                                {state.error}
+                            </div>
+                        )}
+
+                        <form action={formAction} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className={clsx("text-sm font-medium", isDark ? "text-slate-300" : "")}>First Name</label>
-                                    <input type="text" className={clsx("w-full p-3 outline-none transition",
+                                    <input type="text" name="name" required className={clsx("w-full p-3 outline-none transition",
                                         isMinimal ? "border-2 border-black rounded-none focus:bg-yellow-100 placeholder:text-black/50" :
                                             isDark ? "bg-slate-950/50 border border-white/10 rounded-lg text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder:text-slate-600" :
                                                 isNature ? "bg-[#F1F0E8] border-none rounded-lg focus:ring-2 focus:ring-[#4A5D45]" :
@@ -144,7 +173,7 @@ export default function ContactPage() {
                             </div>
                             <div className="space-y-2">
                                 <label className={clsx("text-sm font-medium", isDark ? "text-slate-300" : "")}>Email Address</label>
-                                <input type="email" className={clsx("w-full p-3 outline-none transition",
+                                <input type="email" name="email" required className={clsx("w-full p-3 outline-none transition",
                                     isMinimal ? "border-2 border-black rounded-none focus:bg-yellow-100 placeholder:text-black/50" :
                                         isDark ? "bg-slate-950/50 border border-white/10 rounded-lg text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder:text-slate-600" :
                                             isNature ? "bg-[#F1F0E8] border-none rounded-lg focus:ring-2 focus:ring-[#4A5D45]" :
@@ -154,7 +183,7 @@ export default function ContactPage() {
                             </div>
                             <div className="space-y-2">
                                 <label className={clsx("text-sm font-medium", isDark ? "text-slate-300" : "")}>Message</label>
-                                <textarea className={clsx("w-full p-3 outline-none transition h-32",
+                                <textarea name="message" required className={clsx("w-full p-3 outline-none transition h-32",
                                     isMinimal ? "border-2 border-black rounded-none focus:bg-yellow-100 placeholder:text-black/50" :
                                         isDark ? "bg-slate-950/50 border border-white/10 rounded-lg text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder:text-slate-600" :
                                             isNature ? "bg-[#F1F0E8] border-none rounded-lg focus:ring-2 focus:ring-[#4A5D45]" :
@@ -162,15 +191,19 @@ export default function ContactPage() {
                                                     "rounded-lg bg-background border border-border focus:ring-2 focus:ring-primary"
                                 )} placeholder="How can we help you?"></textarea>
                             </div>
-                            <button type="button" className={clsx(
-                                "w-full py-4 font-bold transition flex items-center justify-center gap-2",
+                            <button type="submit" disabled={isPending} className={clsx(
+                                "w-full py-4 font-bold transition flex items-center justify-center gap-2 disabled:opacity-60",
                                 isMinimal ? "bg-black text-white rounded-none hover:bg-yellow-400 hover:text-black border-2 border-black uppercase" :
                                     isDark ? "bg-cyan-500 text-slate-950 rounded-xl hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-[1.02]" :
                                         isNature ? "bg-[#4A5D45] text-[#F1F0E8] rounded-xl hover:bg-[#2C362B]" :
                                             isPlayful ? "bg-rose-400 text-white rounded-full hover:bg-rose-500 hover:scale-105" :
                                                 "bg-primary text-primary-foreground rounded-xl hover:opacity-90"
                             )}>
-                                Send Message <Send size={18} />
+                                {isPending ? (
+                                    <Loader2 className="animate-spin" size={18} />
+                                ) : (
+                                    <>Send Message <Send size={18} /></>
+                                )}
                             </button>
                         </form>
                     </div>

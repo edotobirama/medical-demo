@@ -146,3 +146,57 @@ export async function addDoctor(
         return { error: 'Failed to add doctor. Please try again.' };
     }
 }
+
+export async function sendContactMessage(
+    prevState: { success?: boolean; error?: string } | null,
+    formData: FormData
+): Promise<{ success?: boolean; error?: string }> {
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const message = formData.get('message') as string;
+
+    if (!name || !email || !message) {
+        return { error: 'Please fill in all fields.' };
+    }
+
+    try {
+        await prisma.contactMessage.create({
+            data: { name, email, message },
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error saving contact message:', error);
+        return { error: 'Failed to send message. Please try again.' };
+    }
+}
+
+export async function updateDoctorSettings(
+    prevState: { success?: boolean; error?: string } | null,
+    formData: FormData
+): Promise<{ success?: boolean; error?: string }> {
+    const session = await auth();
+    if (!session?.user || (session.user as any).role !== 'DOCTOR') {
+        return { error: 'Unauthorized.' };
+    }
+
+    const consultationFee = parseFloat(formData.get('consultationFee') as string);
+    const isAvailable = formData.get('isAvailable') === 'on';
+
+    if (isNaN(consultationFee) || consultationFee < 0) {
+        return { error: 'Please enter a valid consultation fee.' };
+    }
+
+    try {
+        await prisma.doctorProfile.update({
+            where: { userId: session.user.id },
+            data: {
+                consultationFee,
+                isAvailable,
+            },
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating doctor settings:', error);
+        return { error: 'Failed to update settings. Please try again.' };
+    }
+}

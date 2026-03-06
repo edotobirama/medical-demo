@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
     ShieldCheck, Star, Award,
-    CreditCard, Stethoscope, ArrowLeft, CheckCircle
+    CreditCard, Stethoscope, ArrowLeft, CheckCircle, Clock
 } from 'lucide-react';
 import { auth } from '@/auth';
 
@@ -27,9 +27,9 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
 
     if (!doc) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900">Doctor Not Found</h2>
+                    <h2 className="text-2xl font-bold">Doctor Not Found</h2>
                     <p className="text-gray-500 mt-2">The requested doctor profile could not be found.</p>
                     <Link href="/doctors" className="text-emerald-600 hover:underline mt-4 inline-block">
                         Back to Specialists
@@ -45,9 +45,9 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
     const qualifications: string[] = [];
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-background text-foreground pb-20">
             {/* Header / Hero */}
-            <div className="bg-white border-b border-gray-200">
+            <div className="bg-card border-b border-border">
                 <div className="container mx-auto px-6 py-8">
                     <Link href="/doctors" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 transition">
                         <ArrowLeft className="w-4 h-4" /> Back to Specialists
@@ -64,7 +64,7 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
 
                         <div className="flex-1">
                             <div className="flex flex-wrap items-center gap-3 mb-2">
-                                <h1 className="text-3xl font-bold text-gray-900">{doc.user.name}</h1>
+                                <h1 className="text-3xl font-bold text-card-foreground">{doc.user.name}</h1>
                                 <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
                                     {doc.specialization || 'Specialist'}
                                 </span>
@@ -81,16 +81,16 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                                     <Stethoscope className="w-4 h-4" />
                                     {doc.specialization}
                                 </span>
-                                <span className="w-1 h-1 rounded-full bg-gray-300" />
-                                <span className="flex items-center gap-1 font-semibold text-gray-900">
+                                <span className="w-1 h-1 rounded-full bg-border" />
+                                <span className="flex items-center gap-1 font-semibold text-card-foreground">
                                     <CreditCard className="w-4 h-4" />
                                     ${Number(doc.consultationFee)} / visit
                                 </span>
                             </div>
 
-                            <div className="border-t border-gray-100 pt-6">
-                                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3">About</h3>
-                                <p className="text-gray-600 leading-relaxed max-w-3xl">
+                            <div className="border-t border-border pt-6">
+                                <h3 className="text-sm font-bold text-card-foreground uppercase tracking-wide mb-3">About</h3>
+                                <p className="text-muted-foreground leading-relaxed max-w-3xl">
                                     {doc.bio || 'No biography available.'}
                                 </p>
                             </div>
@@ -104,7 +104,7 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                 <div className="lg:col-span-2 space-y-12">
                     {/* Credentials */}
                     <section>
-                        <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
                             <Award className="w-6 h-6 text-emerald-600" />
                             Credentials & Achievements
                         </h3>
@@ -147,7 +147,22 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
 
                 {/* Right Column: Booking Widget */}
                 <div className="lg:col-span-1">
-                    <DoctorBookingWidget doctorId={doc.id} userId={session?.user?.id} />
+                    {doc.isAvailable ? (
+                        <DoctorBookingWidget doctorId={doc.id} userId={session?.user?.id} />
+                    ) : (
+                        <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm text-center">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Clock size={32} className="text-gray-400" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">Not Accepting Appointments</h3>
+                            <p className="text-gray-500 text-sm leading-relaxed">
+                                This doctor is currently not accepting new appointments. Please check back later or browse other specialists.
+                            </p>
+                            <Link href="/doctors" className="btn btn-outline w-full mt-6">
+                                View Other Doctors
+                            </Link>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

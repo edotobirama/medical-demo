@@ -14,7 +14,7 @@ export default function RegisterPage() {
     );
 
     return (
-        <div className="min-h-screen flex bg-gray-50">
+        <div className="min-h-screen flex bg-background text-foreground">
             {/* Left Column: Visuals */}
             <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900 text-white">
                 <div className="absolute inset-0">

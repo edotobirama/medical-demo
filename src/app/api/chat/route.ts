@@ -32,10 +32,25 @@ export async function POST(request: Request) {
                 content: completion.choices[0].message.content
             });
         } else {
-            // MOCK FALLBACK (so the user sees "functionality" right away)
-            // Simple logic: return the next question based on message count
-            const turnIndex = Math.floor(messages.length / 2);
-            const reply = MOCK_DIAGNOSTIC_FLOW[turnIndex] || "I have noted all your symptoms. Please proceed to book an appointment for a full checkup.";
+            // MOCK FALLBACK
+            const lowerMsg = userMessage.toLowerCase();
+            let reply = "";
+
+            if (lowerMsg.match(/\b(hi|hello|hey|greetings)\b/)) {
+                reply = "Hello there! What specific symptoms or health concerns can I help you with today?";
+            } else if (lowerMsg.match(/\b(headache|pain|fever|cough|sick|stomach|nausea)\b/)) {
+                reply = "I'm sorry to hear that. How long have you been experiencing these symptoms? (e.g., 2 days, a week)";
+            } else if (lowerMsg.match(/\b(day|days|week|weeks|month|months|today|yesterday)\b/)) {
+                reply = "I understand. On a scale of 1-10, how severe is the discomfort right now?";
+            } else if (lowerMsg.match(/\b([1-9]|10|one|two|three|four|five|six|seven|eight|nine|ten)\b/)) {
+                reply = "Thank you. Do you have any existing medical conditions or allergies we should be aware of log in your file?";
+            } else if (lowerMsg.match(/\b(no|none|yes|asthma|diabetes|allergy|allergies)\b/)) {
+                reply = "Got it. Based on your symptoms, I recommend booking a consultation with one of our General Practitioners. Would you like to book an appointment?";
+            } else if (lowerMsg.match(/\b(sure|yes|book|appointment|ok|okay)\b/)) {
+                reply = "Great! You can book a time by clicking the 'Book Appointment' button in the navigation bar.";
+            } else {
+                reply = "Thank you for the information. Please remember I am an AI assistant and this is not a medical diagnosis. I recommend seeing a doctor for a full checkup.";
+            }
 
             // Add a small artificial delay to simulate "thinking"
             await new Promise(resolve => setTimeout(resolve, 1000));

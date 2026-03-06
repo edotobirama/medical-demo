@@ -40,6 +40,7 @@ model DoctorProfile {
   bio            String?
   department     String?
   consultationFee Float  @default(0)
+  isAvailable     Boolean @default(true)
   
   achievements   String?   // JSON string
   rating         Float     @default(5.0)
@@ -186,4 +187,14 @@ model Program {
   location    String?
   
   createdAt   DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  isRead    Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
 }

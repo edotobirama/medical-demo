@@ -254,10 +254,10 @@ export default async function PatientDashboard() {
                             <p className="text-white/75 text-sm mb-6 leading-relaxed">
                                 Feeling unwell? Describe your symptoms to our AI assistant for a preliminary assessment.
                             </p>
-                            <button className="w-full py-3 bg-white text-teal-700 rounded-xl font-bold shadow-lg hover:bg-white/90 hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                            <Link href="/messages" className="w-full py-3 bg-white text-teal-700 rounded-xl font-bold shadow-lg hover:bg-white/90 hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                                 <MessageSquare size={16} />
                                 Start Chat
-                            </button>
+                            </Link>
                         </div>
                     </div>
 
