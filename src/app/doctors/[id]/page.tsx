@@ -15,8 +15,13 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
     const { id } = await params;
     const session = await auth();
 
-    const doc = await prisma.doctorProfile.findUnique({
-        where: { id },
+    const doc = await prisma.doctorProfile.findFirst({
+        where: {
+            OR: [
+                { id: id },
+                { userId: id }
+            ]
+        },
         include: { user: true }
     });
 

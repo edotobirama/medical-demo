@@ -71,8 +71,8 @@ export default function BookPage() {
         <div className="container py-20 min-h-screen">
             <div className="max-w-2xl mx-auto">
                 <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold text-slate-900 mb-4">Book Your Appointment</h1>
-                    <p className="text-slate-500">Scheduled for better health in 3 simple steps.</p>
+                    <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">Book Your Appointment</h1>
+                    <p className="text-slate-600 dark:text-slate-300">Scheduled for better health in 3 simple steps.</p>
                 </div>
 
                 {/* Steps Indicator */}
@@ -89,10 +89,10 @@ export default function BookPage() {
                 </div>
 
                 {/* Content */}
-                <div className="glass-card p-8">
+                <div className="glass-card bg-card text-card-foreground p-8 rounded-3xl border border-border shadow-xl">
                     {step === 1 && (
                         <div className="space-y-6 animate-in slide-in-from-right-5 fade-in">
-                            <h2 className="text-2xl font-bold text-slate-800">Select Consultation Type</h2>
+                            <h2 className="text-2xl font-bold">Select Consultation Type</h2>
                             <div className="grid md:grid-cols-2 gap-4">
                                 <button
                                     onClick={() => setType("irl")}
@@ -101,11 +101,11 @@ export default function BookPage() {
                                         type === "irl" ? "border-teal-500 bg-teal-50" : "border-slate-100 hover:border-teal-200"
                                     )}
                                 >
-                                    <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center text-blue-600 mb-4">
+                                    <div className="bg-blue-100/10 w-12 h-12 rounded-lg flex items-center justify-center text-blue-500 mb-4">
                                         <MapPin size={24} />
                                     </div>
-                                    <h3 className="font-bold text-lg text-slate-900">In-Person Visit</h3>
-                                    <p className="text-sm text-slate-500 mt-2">Visit our hospital in Vadasery for a physical checkup.</p>
+                                    <h3 className="font-bold text-lg">In-Person Visit</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">Visit our hospital in Vadasery for a physical checkup.</p>
                                 </button>
 
                                 <button
@@ -115,11 +115,11 @@ export default function BookPage() {
                                         type === "digital" ? "border-purple-500 bg-purple-50" : "border-slate-100 hover:border-purple-200"
                                     )}
                                 >
-                                    <div className="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center text-purple-600 mb-4">
+                                    <div className="bg-purple-100/10 w-12 h-12 rounded-lg flex items-center justify-center text-purple-500 mb-4">
                                         <Video size={24} />
                                     </div>
-                                    <h3 className="font-bold text-lg text-slate-900">Digital Consult</h3>
-                                    <p className="text-sm text-slate-500 mt-2">Video call with a specialist from the comfort of your home.</p>
+                                    <h3 className="font-bold text-lg">Digital Consult</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">Video call with a specialist from the comfort of your home.</p>
                                 </button>
                             </div>
                             <button
@@ -134,14 +134,14 @@ export default function BookPage() {
 
                     {step === 2 && (
                         <div className="space-y-6 animate-in slide-in-from-right-5 fade-in">
-                            <h2 className="text-2xl font-bold text-slate-800">Choose Available Slot</h2>
+                            <h2 className="text-2xl font-bold">Choose Available Slot</h2>
 
                             {loading ? (
                                 <div className="flex justify-center py-12">
                                     <Loader2 className="animate-spin text-teal-500" size={32} />
                                 </div>
                             ) : slots.length === 0 ? (
-                                <div className="text-center py-8 text-slate-500">
+                                <div className="text-center py-8 text-muted-foreground">
                                     No slots available. Please try again later.
                                 </div>
                             ) : (
@@ -154,11 +154,11 @@ export default function BookPage() {
                                         acc[doctorName].slots.push(slot);
                                         return acc;
                                     }, {} as Record<string, { doctor: any, slots: Slot[] }>)).map(({ doctor, slots: doctorSlots }) => (
-                                        <div key={doctor.user.name} className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
-                                            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                                        <div key={doctor.user.name} className="border border-border rounded-xl p-4 bg-background shadow-sm">
+                                            <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
                                                 <div>
-                                                    <h3 className="font-bold text-lg text-slate-800">{doctor.user.name}</h3>
-                                                    <p className="text-sm text-teal-600 font-medium">{doctor.specialization}</p>
+                                                    <h3 className="font-bold text-lg">{doctor.user.name}</h3>
+                                                    <p className="text-sm text-teal-500 font-medium">{doctor.specialization}</p>
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
@@ -198,25 +198,25 @@ export default function BookPage() {
 
                     {step === 3 && (
                         <div className="text-center animate-in zoom-in fade-in duration-500">
-                            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <div className="w-20 h-20 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <Check size={40} />
                             </div>
-                            <h2 className="text-2xl font-bold text-slate-900 mb-2">Booking Confirmed!</h2>
-                            <p className="text-slate-500 mb-8">Your appointment has been scheduled.</p>
-                            <div className="bg-slate-50 p-6 rounded-xl text-left space-y-3 mb-8">
+                            <h2 className="text-2xl font-bold mb-2">Booking Confirmed!</h2>
+                            <p className="text-muted-foreground mb-8">Your appointment has been scheduled.</p>
+                            <div className="bg-background border border-border p-6 rounded-xl text-left space-y-3 mb-8">
                                 <div className="flex justify-between">
-                                    <span className="text-slate-500">Type</span>
-                                    <span className="font-bold text-slate-900 capitalize">{type === 'irl' ? 'In-Person' : 'Digital Consultation'}</span>
+                                    <span className="text-muted-foreground">Type</span>
+                                    <span className="font-bold capitalize">{type === 'irl' ? 'In-Person' : 'Digital Consultation'}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-slate-500">Date</span>
-                                    <span className="font-bold text-slate-900">
+                                    <span className="text-muted-foreground">Date</span>
+                                    <span className="font-bold">
                                         {selectedSlot && format(new Date(selectedSlot.startTime), 'PP p')}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-slate-500">Doctor</span>
-                                    <span className="font-bold text-slate-900">{selectedSlot?.doctor.user.name}</span>
+                                    <span className="text-muted-foreground">Doctor</span>
+                                    <span className="font-bold">{selectedSlot?.doctor.user.name}</span>
                                 </div>
                             </div>
                             <button onClick={() => router.push('/patient')} className="btn btn-primary w-full">Go to Dashboard</button>

@@ -5,13 +5,13 @@ export const servicesData = [
         icon: HeartPulse,
         title: "Cardiology Center",
         description: "Advanced heart care with cutting-edge diagnostics and minimally invasive procedures.",
-        link: "/services/cardiology"
+        link: "/cardiology"
     },
     {
         icon: Microscope,
         title: "Advanced Lab",
         description: "High-precision automated pathology for rapid and accurate test results.",
-        link: "/services/laboratory"
+        link: "/laboratory"
     },
     {
         icon: UserCheck,
@@ -29,12 +29,12 @@ export const servicesData = [
         icon: Stethoscope,
         title: "Pediatrics",
         description: "Compassionate care for infants, children, and adolescents.",
-        link: "/services/pediatrics"
+        link: "/pediatrics"
     },
     {
         icon: ShieldCheck,
         title: "Preventive Care",
         description: "Comprehensive health screenings to catch issues before they start.",
-        link: "/services/preventive"
+        link: "/preventive"
     }
 ];

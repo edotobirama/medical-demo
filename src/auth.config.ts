@@ -10,6 +10,17 @@ export const authConfig = {
             const isOnDashboard = nextUrl.pathname.startsWith('/dashboard') ||
                 (nextUrl.pathname.startsWith('/doctor') && !nextUrl.pathname.startsWith('/doctors')) ||
                 nextUrl.pathname.startsWith('/patient');
+            const isOnAdmin = nextUrl.pathname.startsWith('/admin');
+
+            if (isOnAdmin) {
+                if (!isLoggedIn) return false;
+                // Only ADMIN role can access /admin routes
+                const role = (auth?.user as any)?.role;
+                if (role !== 'ADMIN') {
+                    return Response.redirect(new URL('/login', nextUrl));
+                }
+                return true;
+            }
 
             if (isOnDashboard) {
                 if (isLoggedIn) return true;

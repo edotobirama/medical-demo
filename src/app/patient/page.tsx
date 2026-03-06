@@ -64,29 +64,29 @@ export default async function PatientDashboard() {
     const reports = patientProfile.medicalReports || [];
 
     return (
-        <div className="bg-gray-50 min-h-screen pb-20">
+        <div className="bg-background min-h-screen pb-20">
             {/* Header / Hero */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
+            <div className="bg-card border-b border-border sticky top-0 z-30">
                 <div className="container py-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 font-bold text-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md shadow-teal-500/20">
                             {user.name?.[0] || <UserIcon size={20} />}
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold text-gray-900">Welcome, {user.name?.split(' ')[0]}</h1>
-                            <p className="text-xs text-gray-500">Patient Dashboard</p>
+                            <h1 className="text-xl font-bold text-card-foreground">Welcome, {user.name?.split(' ')[0]}</h1>
+                            <p className="text-xs text-muted-foreground">Patient Dashboard</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <Link href="/book" className="btn btn-primary shadow-lg shadow-teal-500/20">
-                            <Plus size={18} className="mr-2" /> Book Appointment
+                        <Link href="/book" className="flex items-center gap-2 px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-md hover:shadow-lg transition-all active:scale-[0.97]">
+                            Book Appointment
                         </Link>
                         <form action={async () => {
                             'use server';
                             await signOut({ redirectTo: '/login' });
                         }}>
-                            <button className="btn btn-outline border-gray-200 hover:bg-gray-50 text-gray-600">
+                            <button className="btn btn-outline border-border hover:bg-muted text-muted-foreground">
                                 <LogOut size={18} />
                             </button>
                         </form>
@@ -117,12 +117,12 @@ export default async function PatientDashboard() {
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm flex items-center justify-between">
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900">No Active Waitlist</h3>
-                                <p className="text-gray-500 text-sm">You are not currently in any priority queues.</p>
+                                <h3 className="text-lg font-bold text-card-foreground">No Active Waitlist</h3>
+                                <p className="text-muted-foreground text-sm">You are not currently in any priority queues.</p>
                             </div>
-                            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">
+                            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center text-muted-foreground">
                                 <Clock size={24} />
                             </div>
                         </div>
@@ -131,10 +131,10 @@ export default async function PatientDashboard() {
                     {/* Appointments Section */}
                     <div>
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                <Calendar size={20} className="text-teal-600" /> Upcoming Appointments
+                            <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                                <Calendar size={20} className="text-teal-500" /> Upcoming Appointments
                             </h3>
-                            <Link href="/book" className="text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline">
+                            <Link href="/book" className="text-sm font-medium text-teal-500 hover:text-teal-400 hover:underline">
                                 View all
                             </Link>
                         </div>
@@ -142,18 +142,18 @@ export default async function PatientDashboard() {
                         {upcomingAppointments.length > 0 ? (
                             <div className="space-y-4">
                                 {upcomingAppointments.map((app: any) => (
-                                    <div key={app.id} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center gap-5 group">
-                                        <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 transition-colors ${app.type === 'ONLINE' ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-100' : 'bg-blue-50 text-blue-600 group-hover:bg-blue-100'}`}>
+                                    <div key={app.id} className="bg-card rounded-xl p-5 border border-border shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center gap-5 group">
+                                        <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 transition-colors ${app.type === 'ONLINE' ? 'bg-purple-500/10 text-purple-500 group-hover:bg-purple-500/20' : 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500/20'}`}>
                                             {app.type === 'ONLINE' ? <Video size={24} /> : <MapPin size={24} />}
                                         </div>
                                         <div className="flex-1 text-center sm:text-left">
-                                            <h4 className="font-bold text-gray-900">{app.doctor.user?.name || "Dr. Specialist"}</h4>
-                                            <p className="text-sm text-gray-500">{app.doctor.specialization}</p>
-                                            <div className="flex items-center justify-center sm:justify-start gap-3 mt-2 text-xs font-medium text-gray-600">
-                                                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                                            <h4 className="font-bold text-card-foreground">{app.doctor.user?.name || "Dr. Specialist"}</h4>
+                                            <p className="text-sm text-muted-foreground">{app.doctor.specialization}</p>
+                                            <div className="flex items-center justify-center sm:justify-start gap-3 mt-2 text-xs font-medium text-muted-foreground">
+                                                <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
                                                     <Calendar size={12} /> {format(new Date(app.slot.startTime), 'MMM d, yyyy')}
                                                 </span>
-                                                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                                                <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
                                                     <Clock size={12} /> {format(new Date(app.slot.startTime), 'h:mm a')}
                                                 </span>
                                             </div>
@@ -170,12 +170,12 @@ export default async function PatientDashboard() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="bg-white rounded-xl p-10 border border-dashed border-gray-300 text-center">
-                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                            <div className="bg-card rounded-xl p-10 border border-dashed border-border text-center">
+                                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground">
                                     <Calendar size={32} />
                                 </div>
-                                <h4 className="text-gray-900 font-medium mb-1">No appointments scheduled</h4>
-                                <p className="text-gray-500 text-sm mb-4">Book a consultation with our specialists today.</p>
+                                <h4 className="text-card-foreground font-medium mb-1">No appointments scheduled</h4>
+                                <p className="text-muted-foreground text-sm mb-4">Book a consultation with our specialists today.</p>
                                 <Link href="/book" className="btn btn-outline text-sm">Book Now</Link>
                             </div>
                         )}
@@ -184,18 +184,18 @@ export default async function PatientDashboard() {
                     {/* Medical Records Section */}
                     <div>
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                <FileText size={20} className="text-teal-600" /> Recent Medical Reports
+                            <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                                <FileText size={20} className="text-teal-500" /> Recent Medical Reports
                             </h3>
-                            <button className="text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline">
+                            <button className="text-sm font-medium text-teal-500 hover:text-teal-400 hover:underline">
                                 View History
                             </button>
                         </div>
 
-                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
                             {reports.length > 0 ? (
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                                    <thead className="bg-muted text-muted-foreground font-medium border-b border-border">
                                         <tr>
                                             <th className="p-4">Report Name</th>
                                             <th className="p-4 hidden sm:table-cell">Date</th>
@@ -203,19 +203,19 @@ export default async function PatientDashboard() {
                                             <th className="p-4 text-right">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100">
+                                    <tbody className="divide-y divide-border">
                                         {reports.map((report: any) => (
-                                            <tr key={report.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="p-4 font-medium text-gray-900 flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center">
+                                            <tr key={report.id} className="hover:bg-muted transition-colors">
+                                                <td className="p-4 font-medium text-card-foreground flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded bg-blue-500/10 text-blue-500 flex items-center justify-center">
                                                         <FileText size={16} />
                                                     </div>
                                                     {report.title}
                                                 </td>
-                                                <td className="p-4 text-gray-500 hidden sm:table-cell">{format(new Date(report.createdAt), 'MMM d, yyyy')}</td>
-                                                <td className="p-4 text-gray-500 uppercase text-xs font-semibold">{report.fileType}</td>
+                                                <td className="p-4 text-muted-foreground hidden sm:table-cell">{format(new Date(report.createdAt), 'MMM d, yyyy')}</td>
+                                                <td className="p-4 text-muted-foreground uppercase text-xs font-semibold">{report.fileType}</td>
                                                 <td className="p-4 text-right">
-                                                    <button className="text-teal-600 hover:text-teal-700 font-medium text-xs border border-teal-100 hover:border-teal-200 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded transition-all">
+                                                    <button className="text-teal-500 hover:text-teal-400 font-medium text-xs border border-teal-500/20 hover:border-teal-500/40 bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 rounded transition-all">
                                                         Download
                                                     </button>
                                                 </td>
@@ -224,7 +224,7 @@ export default async function PatientDashboard() {
                                     </tbody>
                                 </table>
                             ) : (
-                                <div className="p-10 text-center text-gray-500">
+                                <div className="p-10 text-center text-muted-foreground">
                                     <p>No medical reports uploaded yet.</p>
                                 </div>
                             )}
@@ -236,35 +236,46 @@ export default async function PatientDashboard() {
                 {/* Right Sidebar - Sticky on Desktop */}
                 <div className="lg:col-span-4 space-y-6">
 
-                    {/* AI Helper */}
-                    <div className="bg-gray-900 rounded-2xl p-6 text-white shadow-xl">
-                        <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
-                            <MessageSquare size={24} className="text-teal-400" />
+                    {/* AI Health Assistant — Premium Gradient Card */}
+                    <div className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-teal-500/10 transition-all duration-300">
+                        {/* Gradient Background — Same palette as Book Appointment */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-teal-500 via-emerald-500 to-cyan-500"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-teal-400 via-emerald-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        {/* Decorative Orbs */}
+                        <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+                        <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-emerald-300/15 rounded-full blur-2xl"></div>
+                        <div className="absolute top-1/2 right-4 w-20 h-20 bg-cyan-200/10 rounded-full blur-xl"></div>
+
+                        <div className="relative z-10 p-6 text-white">
+                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-md border border-white/25 shadow-inner">
+                                <MessageSquare size={24} className="text-white drop-shadow-sm" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-1.5 tracking-tight">Health Assistant</h3>
+                            <p className="text-white/75 text-sm mb-6 leading-relaxed">
+                                Feeling unwell? Describe your symptoms to our AI assistant for a preliminary assessment.
+                            </p>
+                            <button className="w-full py-3 bg-white text-teal-700 rounded-xl font-bold shadow-lg hover:bg-white/90 hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                                <MessageSquare size={16} />
+                                Start Chat
+                            </button>
                         </div>
-                        <h3 className="text-xl font-bold mb-2">Health Assistant</h3>
-                        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                            Feeling unwell? Describe your symptoms to our AI assistant for a preliminary assessment.
-                        </p>
-                        <button className="w-full btn bg-teal-500 hover:bg-teal-400 text-white border-none justify-center font-bold">
-                            Start Chat
-                        </button>
                     </div>
 
                     {/* Insurance Card Info */}
-                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">Insurance Coverage</h3>
+                    <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
+                        <h3 className="text-lg font-bold text-card-foreground mb-4">Insurance Coverage</h3>
                         <div className="space-y-4">
-                            <div className="flex justify-between items-center text-sm p-3 bg-gray-50 rounded-lg">
-                                <span className="text-gray-500">Status</span>
-                                <span className="font-semibold text-emerald-600 flex items-center gap-1">
+                            <div className="flex justify-between items-center text-sm p-3 bg-muted rounded-lg">
+                                <span className="text-muted-foreground">Status</span>
+                                <span className="font-semibold text-emerald-500 flex items-center gap-1">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Active
                                 </span>
                             </div>
-                            <div className="flex justify-between items-center text-sm p-3 bg-gray-50 rounded-lg">
-                                <span className="text-gray-500">Deductible</span>
-                                <span className="font-semibold text-gray-900">$1,200 / $2,000</span>
+                            <div className="flex justify-between items-center text-sm p-3 bg-muted rounded-lg">
+                                <span className="text-muted-foreground">Deductible</span>
+                                <span className="font-semibold text-card-foreground">$1,200 / $2,000</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-muted rounded-full h-2">
                                 <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '60%' }}></div>
                             </div>
                         </div>

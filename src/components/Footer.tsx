@@ -21,16 +21,16 @@ export default function Footer() {
                         <li><Link href="/about" className="hover:text-primary transition">Our Departments</Link></li>
                         <li><Link href="/doctors" className="hover:text-primary transition">Find a Doctor</Link></li>
                         <li><Link href="/book" className="hover:text-primary transition">Book Appointment</Link></li>
-                        <li><Link href="/patient" className="hover:text-primary transition">Patient Portal</Link></li>
+                        <li><Link href="/login" className="hover:text-primary transition">Patient Portal</Link></li>
                     </ul>
                 </div>
 
                 <div>
                     <h3 className="text-foreground font-semibold mb-4 text-lg font-heading">Hospital</h3>
                     <ul className="space-y-2 text-sm font-body">
-                        <li><Link href="#" className="hover:text-primary transition">Visiting Hours</Link></li>
-                        <li><Link href="#" className="hover:text-primary transition">Insurance Info</Link></li>
-                        <li><Link href="#" className="hover:text-primary transition">Parking & Maps</Link></li>
+                        <li><Link href="/visiting-hours" className="hover:text-primary transition">Visiting Hours</Link></li>
+                        <li><Link href="/insurance" className="hover:text-primary transition">Insurance Info</Link></li>
+                        <li><Link href="/parking" className="hover:text-primary transition">Parking & Maps</Link></li>
                     </ul>
                 </div>
 

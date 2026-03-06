@@ -2,13 +2,21 @@ import { Calendar, CheckCircle, Clock, Users, Video, MapPin } from "lucide-react
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import SlotManager from "@/components/SlotManager";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
 export const revalidate = 0;
 
 export default async function DoctorDashboard() {
-    // 1. Fetch Doctor (Simulated Logged In: Dr. Sarah)
-    const doctorUser = await prisma.user.findFirst({
-        where: { role: 'DOCTOR' }, // Pick the first one for demo
+    const session = await auth();
+
+    if (!session || !session.user || session.user.role !== 'DOCTOR') {
+        redirect('/login');
+    }
+
+    // 1. Fetch exactly the logged in Doctor
+    const doctorUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
         include: {
             doctorProfile: {
                 include: {
