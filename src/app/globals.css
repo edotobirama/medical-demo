@@ -194,6 +194,117 @@
   --ring: 262 83% 58%;
 }
 
+.theme-cyberpunk {
+  /* CYBERPUNK THEME - Dark, Neon, Futuristic */
+  --font-heading: var(--font-space), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --radius: 0rem;
+
+  --background: 240 10% 4%;
+  --foreground: 0 0% 100%;
+
+  --card: 240 10% 6%;
+  --card-foreground: 0 0% 100%;
+
+  --popover: 240 10% 6%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 180 100% 50%;
+  /* Cyan */
+  --primary-foreground: 240 10% 4%;
+
+  --secondary: 320 100% 50%;
+  /* Magenta */
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 240 10% 12%;
+  --muted-foreground: 240 10% 70%;
+
+  --accent: 320 100% 50%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 100% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 180 100% 50%;
+  --input: 180 100% 50%;
+  --ring: 180 100% 50%;
+}
+
+.theme-nature {
+  /* NATURE THEME - Organic, Green, Earthy */
+  --font-heading: var(--font-quicksand), sans-serif;
+  --font-body: var(--font-lato), sans-serif;
+  --radius: 1rem;
+
+  --background: 120 20% 97%;
+  --foreground: 120 30% 20%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 120 30% 20%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 120 30% 20%;
+
+  --primary: 130 30% 45%;
+  /* Forest Green */
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 40 40% 90%;
+  /* Earthy light */
+  --secondary-foreground: 120 30% 20%;
+
+  --muted: 120 20% 92%;
+  --muted-foreground: 120 20% 45%;
+
+  --accent: 40 40% 90%;
+  --accent-foreground: 120 30% 20%;
+
+  --destructive: 10 70% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 120 20% 85%;
+  --input: 120 20% 85%;
+  --ring: 130 30% 45%;
+}
+
+.theme-corporate {
+  /* CORPORATE THEME - Professional, Sharp, Blue */
+  --font-heading: var(--font-inter), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --radius: 0.25rem;
+
+  --background: 220 20% 98%;
+  --foreground: 220 50% 20%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 220 50% 20%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 50% 20%;
+
+  --primary: 215 80% 40%;
+  /* Strong corporate blue */
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 215 20% 90%;
+  /* Light blue-gray */
+  --secondary-foreground: 215 80% 30%;
+
+  --muted: 215 20% 94%;
+  --muted-foreground: 215 20% 50%;
+
+  --accent: 215 20% 90%;
+  --accent-foreground: 215 80% 30%;
+
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 215 30% 85%;
+  --input: 215 30% 85%;
+  --ring: 215 80% 40%;
+}
+
 @layer base {
   * {
     @apply border-border;

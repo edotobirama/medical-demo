@@ -69,7 +69,7 @@ export default async function PatientDashboard() {
             <div className="bg-card border-b border-border sticky top-0 z-30">
                 <div className="container py-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md shadow-teal-500/20">
+                        <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold text-lg shadow-sm border border-primary/30">
                             {user.name?.[0] || <UserIcon size={20} />}
                         </div>
                         <div>
@@ -79,7 +79,7 @@ export default async function PatientDashboard() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <Link href="/book" className="flex items-center gap-2 px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-md hover:shadow-lg transition-all active:scale-[0.97]">
+                        <Link href="/book" className="flex items-center gap-2 px-7 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full shadow-md hover:shadow-lg transition-all active:scale-[0.97]">
                             Book Appointment
                         </Link>
                         <form action={async () => {
@@ -101,7 +101,7 @@ export default async function PatientDashboard() {
 
                     {/* Quick Stats or Waitlist */}
                     {activeWaitlistAppt ? (
-                        <div className="bg-gradient-to-r from-teal-500 to-emerald-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+                        <div className="bg-primary rounded-2xl p-6 text-primary-foreground shadow-xl relative overflow-hidden border border-border">
                             <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-1/2 -translate-y-1/2">
                                 <Clock size={120} />
                             </div>
@@ -131,9 +131,9 @@ export default async function PatientDashboard() {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                                <Calendar size={20} className="text-teal-500" /> Upcoming Appointments
+                                <Calendar size={20} className="text-primary" /> Upcoming Appointments
                             </h3>
-                            <Link href="/book" className="text-sm font-medium text-teal-500 hover:text-teal-400 hover:underline">
+                            <Link href="/book" className="text-sm font-medium text-primary hover:brightness-110 hover:underline">
                                 View all
                             </Link>
                         </div>
@@ -146,7 +146,7 @@ export default async function PatientDashboard() {
                                             {app.type === 'ONLINE' ? <Video size={24} /> : <MapPin size={24} />}
                                         </div>
                                         <div className="flex-1 text-center sm:text-left">
-                                            <h4 className="font-bold text-card-foreground hover:text-teal-500 transition-colors">
+                                            <h4 className="font-bold text-card-foreground hover:text-primary transition-colors">
                                                 <Link href={`/doctors/${app.doctorId}`}>
                                                     {app.doctor.user?.name || "Dr. Specialist"}
                                                 </Link>
@@ -159,7 +159,7 @@ export default async function PatientDashboard() {
                                                 <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
                                                     <Clock size={12} /> {app.requestedTime ? format(new Date(app.requestedTime), 'h:mm a') : 'No Time'}
                                                 </span>
-                                                <span className="flex items-center gap-1 bg-teal-50 text-teal-700 px-2 py-1 rounded dark:bg-teal-900/30 dark:text-teal-400 border border-teal-200 dark:border-teal-800">
+                                                <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded border border-primary/20">
                                                     #{app.bookingNumber}
                                                 </span>
                                             </div>
@@ -191,9 +191,9 @@ export default async function PatientDashboard() {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                                <FileText size={20} className="text-teal-500" /> Recent Medical Reports
+                                <FileText size={20} className="text-primary" /> Recent Medical Reports
                             </h3>
-                            <button className="text-sm font-medium text-teal-500 hover:text-teal-400 hover:underline">
+                            <button className="text-sm font-medium text-primary hover:brightness-110 hover:underline">
                                 View History
                             </button>
                         </div>
@@ -221,7 +221,7 @@ export default async function PatientDashboard() {
                                                 <td className="p-4 text-muted-foreground hidden sm:table-cell">{format(new Date(report.createdAt), 'MMM d, yyyy')}</td>
                                                 <td className="p-4 text-muted-foreground uppercase text-xs font-semibold">{report.fileType}</td>
                                                 <td className="p-4 text-right">
-                                                    <button className="text-teal-500 hover:text-teal-400 font-medium text-xs border border-teal-500/20 hover:border-teal-500/40 bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 rounded transition-all">
+                                                    <button className="text-primary hover:brightness-110 font-medium text-xs border border-primary/20 hover:border-primary/40 bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded transition-all">
                                                         Download
                                                     </button>
                                                 </td>
@@ -243,24 +243,23 @@ export default async function PatientDashboard() {
                 <div className="lg:col-span-4 space-y-6">
 
                     {/* AI Health Assistant — Premium Gradient Card */}
-                    <div className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-teal-500/10 transition-all duration-300">
-                        {/* Gradient Background — Same palette as Book Appointment */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-teal-500 via-emerald-500 to-cyan-500"></div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-teal-400 via-emerald-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300">
+                        {/* Gradient Background */}
+                        <div className="absolute inset-0 bg-primary"></div>
+                        <div className="absolute inset-0 bg-secondary/20 mix-blend-overlay opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         {/* Decorative Orbs */}
                         <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
-                        <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-emerald-300/15 rounded-full blur-2xl"></div>
-                        <div className="absolute top-1/2 right-4 w-20 h-20 bg-cyan-200/10 rounded-full blur-xl"></div>
+                        <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-black/10 rounded-full blur-2xl"></div>
 
-                        <div className="relative z-10 p-6 text-white">
-                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-md border border-white/25 shadow-inner">
-                                <MessageSquare size={24} className="text-white drop-shadow-sm" />
+                        <div className="relative z-10 p-6 text-primary-foreground">
+                            <div className="w-12 h-12 bg-background/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-md border border-white/25 shadow-inner">
+                                <MessageSquare size={24} className="text-primary-foreground drop-shadow-sm" />
                             </div>
                             <h3 className="text-xl font-bold mb-1.5 tracking-tight">Health Assistant</h3>
-                            <p className="text-white/75 text-sm mb-6 leading-relaxed">
+                            <p className="text-primary-foreground/80 text-sm mb-6 leading-relaxed">
                                 Feeling unwell? Describe your symptoms to our AI assistant for a preliminary assessment.
                             </p>
-                            <Link href="/messages" className="w-full py-3 bg-white text-teal-700 rounded-xl font-bold shadow-lg hover:bg-white/90 hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                            <Link href="/messages" className="w-full py-3 bg-background text-primary rounded-xl font-bold shadow-lg hover:bg-background/90 hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                                 <MessageSquare size={16} />
                                 Start Chat
                             </Link>
@@ -273,8 +272,8 @@ export default async function PatientDashboard() {
                         <div className="space-y-4">
                             <div className="flex justify-between items-center text-sm p-3 bg-muted rounded-lg">
                                 <span className="text-muted-foreground">Status</span>
-                                <span className="font-semibold text-emerald-500 flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Active
+                                <span className="font-semibold text-primary flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-primary"></span> Active
                                 </span>
                             </div>
                             <div className="flex justify-between items-center text-sm p-3 bg-muted rounded-lg">
@@ -282,7 +281,7 @@ export default async function PatientDashboard() {
                                 <span className="font-semibold text-card-foreground">$1,200 / $2,000</span>
                             </div>
                             <div className="w-full bg-muted rounded-full h-2">
-                                <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '60%' }}></div>
+                                <div className="bg-primary h-2 rounded-full" style={{ width: '60%' }}></div>
                             </div>
                         </div>
                         <button className="btn btn-outline w-full justify-center mt-6 text-sm">
