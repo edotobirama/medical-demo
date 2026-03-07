@@ -20,11 +20,6 @@ export default async function PatientDashboard() {
         include: {
             patientProfile: {
                 include: {
-                    waitlistEntries: {
-                        where: { status: 'WAITING' },
-                        orderBy: { createdAt: 'desc' },
-                        take: 1
-                    },
                     appointments: {
                         include: {
                             doctor: {
@@ -32,8 +27,10 @@ export default async function PatientDashboard() {
                             },
                             slot: true
                         },
-                        orderBy: { slot: { startTime: 'asc' } },
-                        where: { slot: { startTime: { gte: new Date() } } }
+                        where: {
+                            status: { in: ['BOOKED', 'RESCHEDULED', 'TURN_ARRIVED'] }
+                        },
+                        orderBy: { requestedTime: 'asc' }
                     },
                     medicalReports: true
                 }
@@ -59,8 +56,11 @@ export default async function PatientDashboard() {
 
     // Force type assertion to avoid valid Prisma relation errors if types are stale
     const patientProfile = user.patientProfile as any;
-    const waitlistEntry = patientProfile.waitlistEntries?.[0];
+
+    // The "Upcoming Appointments" in the waitmath system ARE the waitlist entries.
+    // The closest requested time is the active waitlist.
     const upcomingAppointments = patientProfile.appointments || [];
+    const activeWaitlistAppt = upcomingAppointments[0]; // the next one
     const reports = patientProfile.medicalReports || [];
 
     return (
@@ -100,19 +100,18 @@ export default async function PatientDashboard() {
                 <div className="lg:col-span-8 space-y-8">
 
                     {/* Quick Stats or Waitlist */}
-                    {waitlistEntry ? (
+                    {activeWaitlistAppt ? (
                         <div className="bg-gradient-to-r from-teal-500 to-emerald-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-1/2 -translate-y-1/2">
                                 <Clock size={120} />
                             </div>
                             <div className="relative z-10">
-                                <h3 className="text-lg font-medium opacity-90 mb-1">Priority Waitlist</h3>
+                                <h3 className="text-lg font-medium opacity-90 mb-1">Priority Waitlist (Booking #{activeWaitlistAppt.bookingNumber})</h3>
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-4xl font-bold">#{waitlistEntry.position}</span>
-                                    <span className="text-sm opacity-75">in line</span>
+                                    <span className="text-xl font-bold">{activeWaitlistAppt.doctor.user.name}</span>
                                 </div>
                                 <p className="mt-4 text-sm bg-white/20 inline-block px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-                                    Est. wait: {waitlistEntry.position * 15} mins
+                                    Requested Time: {activeWaitlistAppt.requestedTime ? format(new Date(activeWaitlistAppt.requestedTime), 'h:mm a') : 'TBD'}
                                 </p>
                             </div>
                         </div>
@@ -151,10 +150,13 @@ export default async function PatientDashboard() {
                                             <p className="text-sm text-muted-foreground">{app.doctor.specialization}</p>
                                             <div className="flex items-center justify-center sm:justify-start gap-3 mt-2 text-xs font-medium text-muted-foreground">
                                                 <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
-                                                    <Calendar size={12} /> {format(new Date(app.slot.startTime), 'MMM d, yyyy')}
+                                                    <Calendar size={12} /> {app.requestedTime ? format(new Date(app.requestedTime), 'MMM d, yyyy') : 'No Date'}
                                                 </span>
                                                 <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
-                                                    <Clock size={12} /> {format(new Date(app.slot.startTime), 'h:mm a')}
+                                                    <Clock size={12} /> {app.requestedTime ? format(new Date(app.requestedTime), 'h:mm a') : 'No Time'}
+                                                </span>
+                                                <span className="flex items-center gap-1 bg-teal-50 text-teal-700 px-2 py-1 rounded dark:bg-teal-900/30 dark:text-teal-400 border border-teal-200 dark:border-teal-800">
+                                                    #{app.bookingNumber}
                                                 </span>
                                             </div>
                                         </div>
