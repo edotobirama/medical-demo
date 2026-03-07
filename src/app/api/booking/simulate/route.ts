@@ -24,27 +24,22 @@ export async function POST(req: Request) {
                 doctorId,
                 status: {
                     in: ["BOOKED", "RESCHEDULED", "TURN_ARRIVED", "IN_PROGRESS", "MISSED_BUT_REBOOKED"] // active statuses
-                },
-                // we should only consider appointments that haven't ended yet
-                OR: [
-                    { actualEndTime: null },
-                    { actualEndTime: { gt: currentTime } }
-                ]
+                }
             },
             orderBy: {
                 bookingNumber: 'asc'
             }
-        });
+        } as any);
 
-        const maxBookingNum = await prisma.appointment.aggregate({
+        const maxBookingNum: any = await prisma.appointment.aggregate({
             where: { doctorId },
             _max: { bookingNumber: true }
-        });
+        } as any);
 
         const newBookingNumber = (maxBookingNum._max.bookingNumber || 0) + 1;
 
         // Create our simulation array
-        const queue = pendingAppointments.map(app => ({
+        const queue = (pendingAppointments as any[]).map(app => ({
             id: app.id,
             bookingNumber: app.bookingNumber,
             requestedTime: new Date(app.requestedTime || new Date()),
@@ -121,7 +116,7 @@ export async function POST(req: Request) {
         const waitlistAhead = processed.filter(p => p.actualEnd <= newUserResult.actualStart && p.id !== 'NEW_USER_ENTRY');
         const estWaitlistCount = waitlistAhead.length;
 
-        const estimatedWaitMs = newUserResult.actualStart.getTime() - newUserResult.requestedTime.getTime();
+        const estimatedWaitMs = newUserResult.actualStart.getTime() - currentTime.getTime();
         const estimatedWaitMins = Math.max(0, Math.floor(estimatedWaitMs / 60000));
 
         return NextResponse.json({

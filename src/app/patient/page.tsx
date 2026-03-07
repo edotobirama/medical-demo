@@ -146,7 +146,11 @@ export default async function PatientDashboard() {
                                             {app.type === 'ONLINE' ? <Video size={24} /> : <MapPin size={24} />}
                                         </div>
                                         <div className="flex-1 text-center sm:text-left">
-                                            <h4 className="font-bold text-card-foreground">{app.doctor.user?.name || "Dr. Specialist"}</h4>
+                                            <h4 className="font-bold text-card-foreground hover:text-teal-500 transition-colors">
+                                                <Link href={`/doctors/${app.doctorId}`}>
+                                                    {app.doctor.user?.name || "Dr. Specialist"}
+                                                </Link>
+                                            </h4>
                                             <p className="text-sm text-muted-foreground">{app.doctor.specialization}</p>
                                             <div className="flex items-center justify-center sm:justify-start gap-3 mt-2 text-xs font-medium text-muted-foreground">
                                                 <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
