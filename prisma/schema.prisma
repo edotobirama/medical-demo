@@ -26,6 +26,7 @@ model User {
 
   // Relations
   sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
   uploadedReports  MedicalReport[] @relation("UploadedReports")
   auditLogs        AuditLog[]
 }
@@ -172,8 +173,11 @@ model Message {
   senderId  String
   sender    User     @relation("SentMessages", fields: [senderId], references: [id])
   
-  content   String
-  createdAt DateTime @default(now())
+  content    String
+  createdAt  DateTime @default(now())
+  
+  receiverId String?
+  receiver   User?    @relation("ReceivedMessages", fields: [receiverId], references: [id])
   
   // For a full system, you'd add ChatRooms/Sessions linking patients and doctors.
   chatRoomId String?
