@@ -1,4 +1,5 @@
-import { MapPin, Car, Info } from "lucide-react";
+import { MapPin, Car, Info, Navigation } from "lucide-react";
+import Image from "next/image";
 import Navbar from "@/components/Navbar";
 
 export default function ParkingPage() {
@@ -6,11 +7,32 @@ export default function ParkingPage() {
         <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
             <Navbar transparent={false} />
             <div className="flex-1 container mx-auto px-6 py-24 max-w-4xl">
-                <div className="text-center mb-16">
+                <div className="text-center mb-12">
                     <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 font-heading">Parking & Campus Map</h1>
                     <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                         We provide convenient, secure parking facilities directly attached to our main clinical buildings.
                     </p>
+                </div>
+
+                {/* Campus Map Visualization */}
+                <div className="mb-16 relative rounded-3xl overflow-hidden shadow-2xl border border-border group">
+                    <div className="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors duration-500 z-10 pointer-events-none"></div>
+                    <Image
+                        src="/images/campus-map.png"
+                        alt="3D Illustration of Grandview Medical Center Campus"
+                        width={1200}
+                        height={600}
+                        className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-700 ease-in-out"
+                        priority
+                    />
+                    <div className="absolute bottom-6 left-6 bg-background/90 backdrop-blur-md p-4 rounded-xl shadow-lg border border-border/50 z-20 max-w-sm">
+                        <div className="flex items-center gap-2 text-primary font-bold mb-1">
+                            <Navigation size={18} /> Campus Layout
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Explore the layout of our clinical buildings, emergency entrances, and dedicated visitor parking zones above.
+                        </p>
+                    </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-8 mb-12">
