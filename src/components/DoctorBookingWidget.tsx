@@ -30,6 +30,7 @@ export default function DoctorBookingWidget({ doctorId, userId }: { doctorId: st
 
     const [simulation, setSimulation] = useState<any>(null);
     const [simulating, setSimulating] = useState(false);
+    const [simError, setSimError] = useState<string | null>(null);
 
     // Call Simulation API
     useEffect(() => {
@@ -54,9 +55,16 @@ export default function DoctorBookingWidget({ doctorId, userId }: { doctorId: st
                 if (res.ok) {
                     const data = await res.json();
                     setSimulation(data);
+                    setSimError(null);
+                } else {
+                    console.error("Simulation error response", res.status);
+                    setSimulation(null);
+                    setSimError("Failed to calculate queue. Please try again.");
                 }
             } catch (err) {
                 console.error("Simulation error", err);
+                setSimulation(null);
+                setSimError("Network error. Could not connect to the queue system.");
             } finally {
                 setSimulating(false);
             }
@@ -200,6 +208,10 @@ export default function DoctorBookingWidget({ doctorId, userId }: { doctorId: st
                                     AI estimated duration: {simulation.estimatedDuration} mins
                                 </div>
                             </div>
+                        </div>
+                    ) : simError ? (
+                        <div className="text-center py-6 text-red-500 text-sm font-semibold">
+                            {simError}
                         </div>
                     ) : (
                         <div className="text-center py-6 text-muted-foreground text-sm">
