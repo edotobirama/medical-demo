@@ -10,6 +10,7 @@ import { auth } from '@/auth';
 export const revalidate = 0; // Ensure fresh data
 
 import DoctorBookingWidget from '@/components/DoctorBookingWidget';
+import LiveSchedule from './LiveSchedule';
 
 export default async function DoctorProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -102,45 +103,20 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
             <div className="container mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
                 {/* Left Column: Details */}
                 <div className="lg:col-span-2 space-y-12">
-                    {/* Credentials */}
+                    {/* Live Schedule & Aggregated Waitlist */}
                     <section>
                         <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
-                            <Award className="w-6 h-6 text-emerald-600" />
-                            Credentials & Achievements
+                            <Clock className="w-6 h-6 text-primary" />
+                            Live Waitlist & Schedule
                         </h3>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            {/* Qualifications - Hidden if empty or check schema later */}
-                            {qualifications.length > 0 && (
-                                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                    <h4 className="font-semibold text-gray-900 mb-4">Qualifications</h4>
-                                    <ul className="space-y-3">
-                                        {qualifications.map((q, i) => (
-                                            <li key={i} className="flex items-center gap-3 text-gray-600 text-sm">
-                                                <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                                                {q}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+                        <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
+                            <p className="text-muted-foreground mb-4 text-sm">
+                                View real-time booking numbers and waitlist queue for today and tomorrow.
+                                Lower booking numbers have higher priority at their requested times.
+                            </p>
 
-                            {/* Awards */}
-                            {achievements.length > 0 && (
-                                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                    <h4 className="font-semibold text-gray-900 mb-4">Achievements</h4>
-                                    <ul className="space-y-3">
-                                        {achievements.map((a: string, i: number) => (
-                                            <li key={i} className="flex items-center gap-3 text-gray-600 text-sm">
-                                                <Award className="w-4 h-4 text-amber-500 shrink-0" />
-                                                {a}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            {achievements.length === 0 && qualifications.length === 0 && (
-                                <div className="col-span-2 text-gray-500 italic">No detailed credentials listed.</div>
-                            )}
+                            {/* We can fetch and group appointments by hour here, or use a Client Component for live polling. Since this is an RSC, we'll fetch the initial state. */}
+                            <LiveSchedule docId={doc.id} />
                         </div>
                     </section>
                 </div>

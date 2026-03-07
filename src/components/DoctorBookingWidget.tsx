@@ -3,93 +3,101 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Loader2, Calendar, Clock, CheckCircle } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle, Hash, Users, CreditCard } from "lucide-react";
 import { useSession } from "next-auth/react";
 import clsx from "clsx";
 
-type Slot = {
-    id: string;
-    startTime: string;
-    status: string;
-};
-
 export default function DoctorBookingWidget({ doctorId, userId }: { doctorId: string, userId?: string }) {
     const router = useRouter();
-    const [slots, setSlots] = useState<Slot[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
     const [booking, setBooking] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [showPayment, setShowPayment] = useState(false);
+    const [paymentNumber, setPaymentNumber] = useState<string | null>(null);
 
     const { data: session, status } = useSession();
-    // Check debugging log
-    // console.log("DoctorBookingWidget Session:", session, "Status:", status, "Prop UserId:", userId);
 
-    const [waitlistData, setWaitlistData] = useState({ count: 0, estimatedTime: 0 });
+    const [requestedTime, setRequestedTime] = useState(() => {
+        // default to next hour
+        const d = new Date();
+        d.setHours(d.getHours() + 1);
+        d.setMinutes(0);
+        return format(d, 'HH:mm');
+    });
 
+    // allow selection for today or tomorrow
+    const [bookingDate, setBookingDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+    const [issue, setIssue] = useState("");
+
+    const [simulation, setSimulation] = useState<any>(null);
+    const [simulating, setSimulating] = useState(false);
+
+    // Call Simulation API
     useEffect(() => {
-        // Fetch Slots
-        fetch(`/api/slots?doctorId=${doctorId}`)
-            .then(res => res.json())
-            .then(data => {
-                setSlots(data);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Failed to fetch slots:", err);
-                setLoading(false);
-            });
+        const fetchSimulation = async () => {
+            if (!requestedTime || !bookingDate) return;
+            setSimulating(true);
+            try {
+                // Construct proper datetime string
+                const timestamp = new Date(`${bookingDate}T${requestedTime}:00`);
+                if (isNaN(timestamp.getTime())) return;
 
-        // Polling function for waitlist
-        const fetchWaitlist = () => {
-            fetch(`/api/waitlist?doctorId=${doctorId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && typeof data.count === 'number') {
-                        setWaitlistData(data);
-                    }
-                })
-                .catch(err => console.error("Failed to fetch waitlist:", err));
+                const res = await fetch('/api/booking/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        doctorId,
+                        requestedTime: timestamp.toISOString(),
+                        issueDescription: issue
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setSimulation(data);
+                }
+            } catch (err) {
+                console.error("Simulation error", err);
+            } finally {
+                setSimulating(false);
+            }
         };
 
-        // Initial fetch
-        fetchWaitlist();
+        const debounce = setTimeout(fetchSimulation, 500);
+        return () => clearTimeout(debounce);
+    }, [doctorId, requestedTime, bookingDate, issue]);
 
-        // Poll every 5 seconds
-        const intervalId = setInterval(fetchWaitlist, 5000);
-
-        return () => clearInterval(intervalId);
-
-    }, [doctorId]);
-
-    const handleBooking = async () => {
-        if (!selectedSlot) return;
-
-        // Use prop (server-side truth) OR client session
+    const handlePaymentInitiation = () => {
         const isAuthenticated = !!userId || !!session;
-
         if (!isAuthenticated) {
-            console.log("No session found in handleBooking, redirecting...");
             const returnUrl = encodeURIComponent(`/doctors/${doctorId}`);
             router.push(`/login?callbackUrl=${returnUrl}`);
             return;
         }
+        setShowPayment(true);
+    };
 
+    const handleBooking = async () => {
         setBooking(true);
 
         try {
-            const res = await fetch('/api/appointments', {
+            const timestamp = new Date(`${bookingDate}T${requestedTime}:00`).toISOString();
+
+            const res = await fetch('/api/booking/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: 'OFFLINE', // Default to offline for quick profile booking
-                    slotId: selectedSlot.id
+                    doctorId,
+                    type: 'OFFLINE',
+                    requestedTime: timestamp,
+                    issueDescription: issue
                 })
             });
 
             const data = await res.json();
 
             if (res.ok) {
+                setPaymentNumber(`PAY-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
+                setShowPayment(false);
                 setIsSuccess(true);
             } else {
                 alert(`Booking Failed: ${data.error || "Unknown error"}`);
@@ -101,150 +109,186 @@ export default function DoctorBookingWidget({ doctorId, userId }: { doctorId: st
         setBooking(false);
     };
 
-    if (loading) {
-        return (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-24">
-                <div className="flex justify-center py-8">
-                    <Loader2 className="animate-spin text-teal-500" size={32} />
-                </div>
-            </div>
-        );
-    }
-
-    // Group slots by date for better UI? For now, list simple.
-    // Actually, let's just show next few available.
-    const availableSlots = slots.filter(s => s.status === 'AVAILABLE').slice(0, 6);
-
     return (
         <>
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-24">
-                <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-teal-600" />
-                    Book Appointment
+            <div className="bg-white rounded-2xl shadow-lg border border-border p-6 sticky top-24">
+                <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    Priority Waitlist Booking
                 </h3>
+
+                <div className="space-y-4 mb-6">
+                    <div>
+                        <label className="block text-sm font-semibold text-foreground mb-1">Select Date</label>
+                        <select
+                            value={bookingDate}
+                            onChange={e => setBookingDate(e.target.value)}
+                            className="w-full border border-border rounded-lg px-3 py-2 bg-background focus:ring-2 focus:ring-primary outline-none"
+                        >
+                            <option value={format(new Date(), 'yyyy-MM-dd')}>Today ({format(new Date(), 'MMM d')})</option>
+                            <option value={format(new Date(Date.now() + 86400000), 'yyyy-MM-dd')}>Tomorrow ({format(new Date(Date.now() + 86400000), 'MMM d')})</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-foreground mb-1">Exact Requested Time</label>
+                        <input
+                            type="time"
+                            value={requestedTime}
+                            onChange={e => setRequestedTime(e.target.value)}
+                            className="w-full border border-border rounded-lg px-3 py-2 bg-background focus:ring-2 focus:ring-primary outline-none"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1 text-primary">Exact minute supported.</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-foreground mb-1">Medical Issue (optional)</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. Headache, Checkup..."
+                            value={issue}
+                            onChange={e => setIssue(e.target.value)}
+                            className="w-full border border-border rounded-lg px-3 py-2 bg-background focus:ring-2 focus:ring-primary outline-none"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Used by AI to calculate expected visit duration.</p>
+                    </div>
+                </div>
 
                 {/* Live Waitlist Info - Integrated & Dynamic */}
                 <div className={clsx(
-                    "mb-6 rounded-xl p-4 border transition-all",
-                    selectedSlot ? "bg-emerald-50/50 border-emerald-100" : "bg-blue-50/50 border-blue-100"
+                    "mb-6 rounded-xl p-4 border transition-all relative overflow-hidden",
+                    "bg-secondary/30 border-primary/20"
                 )}>
-                    {selectedSlot ? (
-                        <>
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2 text-emerald-900 font-semibold text-sm">
-                                    <Clock className="w-4 h-4 text-emerald-600" />
-                                    Expected Status
+                    {simulating && (
+                        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
+                            <Loader2 className="animate-spin text-primary" size={24} />
+                        </div>
+                    )}
+
+                    <h4 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-primary" />
+                        Live Queue Simulation
+                    </h4>
+
+                    {simulation ? (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-background rounded-lg p-3 border border-border text-center shadow-sm">
+                                    <div className="text-xs font-semibold text-muted-foreground mb-1 flex justify-center items-center gap-1">
+                                        <Hash className="w-3 h-3" /> Booking #
+                                    </div>
+                                    <div className="text-2xl font-black text-foreground">#{simulation.bookingNumber}</div>
                                 </div>
-                                <span className="text-emerald-700 font-bold text-sm">
-                                    {(() => {
-                                        const now = new Date();
-                                        const slotTime = new Date(selectedSlot.startTime);
-                                        const minsUntilSlot = (slotTime.getTime() - now.getTime()) / 60000;
-
-                                        // The current backlog (waitlist work) needs to be finished.
-                                        // If backlog > time until slot, we are delayed.
-                                        // If backlog < time until slot, we are likely on time.
-                                        const delay = Math.round(Math.max(0, waitlistData.estimatedTime - minsUntilSlot));
-
-                                        if (delay <= 0) return "On Time";
-                                        return `~${delay} mins delay`;
-                                    })()}
-                                </span>
+                                <div className="bg-background rounded-lg p-3 border border-border text-center shadow-sm">
+                                    <div className="text-xs font-semibold text-muted-foreground mb-1 flex justify-center items-center gap-1">
+                                        <Users className="w-3 h-3" /> Ahead of You
+                                    </div>
+                                    <div className="text-2xl font-black text-foreground">{simulation.estimatedWaitlist}</div>
+                                </div>
                             </div>
-                            <div className="flex items-center justify-between text-xs text-emerald-600/80">
-                                <span>Based on current queue:</span>
-                                <span className="font-medium">
-                                    {Math.max(0, waitlistData.estimatedTime - Math.round(((new Date(selectedSlot.startTime).getTime() - new Date().getTime()) / 60000))) > 0
-                                        ? "Queue overlap"
-                                        : "Queue clear"}
-                                </span>
+
+                            <div className="bg-orange-50 dark:bg-orange-950/20 rounded-lg p-3 border border-orange-100 dark:border-orange-900/40">
+                                <div className="flex justify-between items-center text-sm mb-1">
+                                    <span className="font-semibold text-orange-900 dark:text-orange-400">Est. Wait Time:</span>
+                                    <span className="font-bold text-orange-700 dark:text-orange-500">{simulation.estimatedWaitTime} mins</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="font-semibold text-foreground">Actual Start Time:</span>
+                                    <span className="font-bold text-primary">{format(new Date(simulation.actualStartTime), 'h:mm a')}</span>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground mt-2 border-t pt-2 border-orange-200/50">
+                                    AI estimated duration: {simulation.estimatedDuration} mins
+                                </div>
                             </div>
-                        </>
+                        </div>
                     ) : (
-                        <>
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2 text-blue-900 font-semibold text-sm">
-                                    <Clock className="w-4 h-4 text-blue-600" />
-                                    Check Wait Time
-                                </div>
-                                <span className="text-blue-700 font-bold text-sm">-- mins</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs text-blue-600/80">
-                                <span>Status:</span>
-                                <span className="font-medium">Calculated per slot</span>
-                            </div>
-                            <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between text-xs text-blue-400">
-                                <span>Live Hospital Queue:</span>
-                                <span className="font-semibold">{waitlistData.count} patients waiting</span>
-                            </div>
-                        </>
+                        <div className="text-center py-6 text-muted-foreground text-sm">
+                            Enter time to calculate your priority and Waitlist position.
+                        </div>
                     )}
                 </div>
 
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Available Slots</label>
-                        {availableSlots.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-2">
-                                {availableSlots.map(slot => (
-                                    <button
-                                        key={slot.id}
-                                        onClick={() => setSelectedSlot(slot)}
-                                        className={clsx(
-                                            "px-4 py-2.5 rounded-lg text-sm font-semibold border transition-all flex items-center justify-center gap-2",
-                                            selectedSlot?.id === slot.id
-                                                ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-200"
-                                                : "border-gray-200 hover:border-emerald-300 hover:bg-gray-50 text-gray-700"
-                                        )}
-                                    >
-                                        <Clock size={14} />
-                                        {format(new Date(slot.startTime), 'p')}
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg text-sm border border-dashed border-gray-200">
-                                No slots available recently. <br /> Check back later.
-                            </div>
+                <div className="pt-2 border-t border-border">
+                    <button
+                        onClick={handlePaymentInitiation}
+                        disabled={booking || showPayment || !simulation || simulating}
+                        className={clsx(
+                            "w-full py-4 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2",
+                            booking || !simulation || simulating
+                                ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none"
+                                : "bg-primary hover:bg-primary/90 text-primary-foreground group"
                         )}
-                    </div>
-
-                    <div className="pt-4 border-t border-gray-100">
-                        <button
-                            onClick={handleBooking}
-                            disabled={!selectedSlot || booking}
-                            className={clsx(
-                                "w-full py-3 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2",
-                                !selectedSlot || booking
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
-                                    : "bg-gray-900 hover:bg-gray-800 text-white"
-                            )}
-                        >
-                            {booking ? <Loader2 className="animate-spin" size={18} /> : "Confirm Booking"}
-                        </button>
-                        {!selectedSlot && availableSlots.length > 0 && (
-                            <p className="text-center text-xs text-gray-400 mt-2">Please select a time first</p>
+                    >
+                        {booking ? <Loader2 className="animate-spin" size={18} /> : (
+                            <>
+                                <CreditCard className="w-4 h-4 group-hover:-translate-y-0.5 transition" />
+                                Pay & Secure ##{simulation?.bookingNumber ?? '-'}
+                            </>
                         )}
-                        <p className="text-center text-xs text-gray-500 mt-3">
-                            No payment required until confirmation.
-                        </p>
-                    </div>
+                    </button>
+                    <p className="text-center text-xs text-muted-foreground mt-3">
+                        Minimal upfront fee required to secure your Booking Number priority.
+                    </p>
                 </div>
             </div>
+
+            {showPayment && !isSuccess && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-card rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center">
+                            <CreditCard size={48} className="text-primary mb-4" />
+                            <h3 className="text-xl font-bold text-card-foreground mb-2">Simulate Payment</h3>
+                            <p className="text-muted-foreground mb-6 text-sm">
+                                Click OK to confirm your partial payment and secure booking #{simulation?.bookingNumber}.
+                            </p>
+                            <div className="flex gap-4 w-full">
+                                <button
+                                    onClick={() => setShowPayment(false)}
+                                    className="w-full py-3 border border-border bg-background hover:bg-muted text-foreground rounded-xl font-bold transition"
+                                    disabled={booking}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleBooking}
+                                    disabled={booking}
+                                    className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold transition shadow-lg flex justify-center items-center"
+                                >
+                                    {booking ? <Loader2 className="animate-spin" size={18} /> : "OK"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isSuccess && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+                    <div className="bg-card rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl transform transition-all scale-100 animate-in zoom-in-95 duration-200">
                         <div className="flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+                            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-4">
                                 <CheckCircle size={32} />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">Booking Confirmed!</h3>
-                            <p className="text-gray-500 mb-6 text-sm">
-                                Your appointment has been secured. You can view details in your dashboard.
+                            <h3 className="text-xl font-bold text-card-foreground mb-2">Booking Confirmed!</h3>
+
+                            <div className="bg-emerald-50 dark:bg-emerald-900/10 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 rounded-lg p-3 w-full mb-4 space-y-1">
+                                <div className="flex justify-between items-center font-medium text-sm">
+                                    <span>Status:</span>
+                                    <span className="font-bold bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-md text-emerald-700 dark:text-emerald-300">Paid</span>
+                                </div>
+                                <div className="flex justify-between items-center font-medium text-sm">
+                                    <span>Payment No:</span>
+                                    <span className="font-bold font-mono text-xs text-muted-foreground">{paymentNumber}</span>
+                                </div>
+                            </div>
+
+                            <p className="text-muted-foreground mb-6 text-sm">
+                                Your priority number is <strong>#{simulation?.bookingNumber}</strong>. <br />
+                                Please monitor the live queue.
                             </p>
                             <button
                                 onClick={() => router.push('/patient')}
-                                className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold transition shadow-lg"
+                                className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold transition shadow-lg"
                             >
                                 Go to Dashboard
                             </button>
