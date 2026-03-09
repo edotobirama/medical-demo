@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { Calendar, Clock, FileText, MessageSquare, Plus, Video, MapPin, User as UserIcon, LogOut } from "lucide-react";
+import { Calendar, Clock, FileText, MessageSquare, Plus, Video, MapPin, User as UserIcon, LogOut, AlertTriangle } from "lucide-react";
 import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
 import { auth, signOut } from '@/auth';
 import { redirect } from 'next/navigation';
 import CancelAppointmentButton from '@/components/CancelAppointmentButton';
+import PatientRefundReschedule from '@/components/PatientRefundReschedule';
 
 export const revalidate = 0;
 
@@ -63,6 +64,19 @@ export default async function PatientDashboard() {
     const upcomingAppointments = patientProfile.appointments || [];
     const activeWaitlistAppt = upcomingAppointments[0]; // the next one
     const reports = patientProfile.medicalReports || [];
+
+    // Fetch appointments that need patient action (cancelled by doctor or reschedule requested)
+    const actionableAppointments = await prisma.appointment.findMany({
+        where: {
+            patientId: patientProfile.id,
+            status: { in: ['CANCELLED', 'RESCHEDULE_REQUESTED'] }
+        },
+        include: {
+            doctor: { include: { user: true } },
+            slot: true
+        },
+        orderBy: { updatedAt: 'desc' }
+    });
 
     return (
         <div className="bg-background min-h-screen pb-20">
@@ -128,6 +142,49 @@ export default async function PatientDashboard() {
                         </div>
                     )}
 
+                    {/* Action Required — Refund / Reschedule */}
+                    {actionableAppointments.length > 0 && (
+                        <div>
+                            <div className="flex items-center gap-2 mb-4">
+                                <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                                    <AlertTriangle size={20} className="text-amber-500" /> Action Required
+                                </h3>
+                                <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                                    {actionableAppointments.length}
+                                </span>
+                            </div>
+                            <div className="space-y-4">
+                                {actionableAppointments.map((app: any) => (
+                                    <div key={app.id} className="bg-card rounded-xl border border-border shadow-sm p-5 space-y-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 ${app.type === 'ONLINE' ? 'bg-purple-500/10 text-purple-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                {app.type === 'ONLINE' ? <Video size={22} /> : <MapPin size={22} />}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-card-foreground">{app.doctor.user?.name || 'Dr. Specialist'}</h4>
+                                                <p className="text-sm text-muted-foreground">{app.doctor.specialization}</p>
+                                                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                                    <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded">
+                                                        <Calendar size={10} /> {app.requestedTime ? format(new Date(app.requestedTime), 'MMM d, yyyy') : 'N/A'}
+                                                    </span>
+                                                    <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded">
+                                                        <Clock size={10} /> {app.requestedTime ? format(new Date(app.requestedTime), 'h:mm a') : 'N/A'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <PatientRefundReschedule
+                                            appointmentId={app.id}
+                                            doctorId={app.doctorId}
+                                            amountPaid={app.amountPaid}
+                                            status={app.status}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Appointments Section */}
                     <div>
                         <div className="flex items-center justify-between mb-4">
@@ -165,16 +222,19 @@ export default async function PatientDashboard() {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex gap-2 w-full sm:w-auto">
-                                            <Link href={`/book?doctorId=${app.doctorId}&reschedule=${app.id}`} className="flex-1 sm:flex-none btn btn-outline px-4 py-2 text-xs text-center">
+                                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                                            <Link href={`/book?doctorId=${app.doctorId}&reschedule=${app.id}`} className="flex-1 sm:flex-none btn btn-outline px-4 py-2 text-xs text-center border-border">
                                                 Reschedule
                                             </Link>
+                                            <CancelAppointmentButton appointmentId={app.id} />
                                             {app.type === 'ONLINE' ? (
                                                 <Link href={`/video/${app.id}`} className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs text-center">Join Video</Link>
                                             ) : (
                                                 <Link href="/parking" className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs text-center">Directions</Link>
                                             )}
-                                            <CancelAppointmentButton appointmentId={app.id} />
+                                            <Link href={`/inbox/${app.doctor.userId}`} className="flex-1 sm:flex-none btn px-4 py-2 text-xs text-center bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold w-full sm:w-auto mt-2 sm:mt-0 shadow-sm border border-border">
+                                                Message
+                                            </Link>
                                         </div>
                                     </div>
                                 ))}

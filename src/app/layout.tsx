@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
 import Providers from "@/components/Providers";
 import ThemeWrapper from "@/components/ThemeWrapper";
+import MessageNotifier from "@/components/MessageNotifier";
 import "./globals.css";
 
 // Define fonts
@@ -35,6 +36,7 @@ export default function RootLayout({
               {/* ChatWidget is now inside Providers/ThemeWrapper if it needs theme access, 
                   but strictly sticking to previous structure + wrapper */}
               <ChatWidget />
+              <MessageNotifier />
               <Footer />
             </div>
           </Providers>

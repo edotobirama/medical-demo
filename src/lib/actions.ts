@@ -221,11 +221,13 @@ export async function cancelAppointment(appointmentId: string) {
     try {
         const apt = await prisma.appointment.findUnique({
             where: { id: appointmentId },
-            include: { patient: { include: { user: true } } }
+            include: { patient: { include: { user: true } }, doctor: { include: { user: true } } }
         });
 
         if (!apt) throw new Error('Not found');
-        if (apt.patient.user.id !== session.user.id) throw new Error('Unauthorized');
+        const isPatient = apt.patient.user.id === session.user.id;
+        const isDoctor = apt.doctor.user.id === session.user.id;
+        if (!isPatient && !isDoctor && session.user.role !== 'ADMIN') throw new Error('Unauthorized');
 
         await prisma.$transaction([
             prisma.appointment.update({
@@ -241,5 +243,117 @@ export async function cancelAppointment(appointmentId: string) {
         return { success: true };
     } catch (e) {
         return { error: 'Could not cancel appointment' };
+    }
+}
+
+export async function completeAppointment(appointmentId: string) {
+    const session = await auth();
+    if (!session?.user) {
+        return { error: 'Unauthorized' };
+    }
+
+    try {
+        const apt = await prisma.appointment.findUnique({
+            where: { id: appointmentId },
+            include: { doctor: { include: { user: true } } }
+        });
+
+        if (!apt) return { error: 'Not found' };
+        if (apt.doctor.user.id !== session.user.id) return { error: 'Unauthorized. Only the doctor can complete this.' };
+
+        await prisma.appointment.update({
+            where: { id: appointmentId },
+            data: { status: 'COMPLETED' }
+        });
+
+        return { success: true };
+    } catch (e) {
+        return { error: 'Could not complete appointment' };
+    }
+}
+
+export async function requestRescheduleAppointment(appointmentId: string) {
+    const session = await auth();
+    if (!session?.user) return { error: 'Unauthorized' };
+
+    try {
+        const apt = await prisma.appointment.findUnique({
+            where: { id: appointmentId },
+            include: { doctor: { include: { user: true } } }
+        });
+
+        if (!apt) return { error: 'Not found' };
+        if (apt.doctor.user.id !== session.user.id) return { error: 'Unauthorized' };
+
+        await prisma.appointment.update({
+            where: { id: appointmentId },
+            data: { status: 'RESCHEDULE_REQUESTED' }
+        });
+
+        return { success: true };
+    } catch (e) {
+        return { error: 'Could not request reschedule' };
+    }
+}
+
+export async function startConsultation(appointmentId: string) {
+    const session = await auth();
+    if (!session?.user) return { error: 'Unauthorized' };
+
+    try {
+        const apt = await prisma.appointment.findUnique({
+            where: { id: appointmentId },
+            include: { doctor: { include: { user: true } } }
+        });
+
+        if (!apt) return { error: 'Not found' };
+        if (apt.doctor.user.id !== session.user.id) return { error: 'Unauthorized' };
+
+        await prisma.appointment.update({
+            where: { id: appointmentId },
+            data: {
+                status: 'IN_PROGRESS',
+                actualStartTime: new Date()
+            }
+        });
+
+        return { success: true };
+    } catch (e) {
+        return { error: 'Could not start consultation' };
+    }
+}
+
+export async function requestRefund(appointmentId: string) {
+    const session = await auth();
+    if (!session?.user) return { error: 'Unauthorized' };
+
+    try {
+        const apt = await prisma.appointment.findUnique({
+            where: { id: appointmentId },
+            include: { patient: { include: { user: true } } }
+        });
+
+        if (!apt) return { error: 'Appointment not found' };
+        if (apt.patient.user.id !== session.user.id) return { error: 'Unauthorized' };
+
+        const refundableStatuses = ['CANCELLED', 'RESCHEDULE_REQUESTED'];
+        if (!refundableStatuses.includes(apt.status)) {
+            return { error: 'This appointment is not eligible for a refund.' };
+        }
+
+        await prisma.$transaction([
+            prisma.appointment.update({
+                where: { id: appointmentId },
+                data: { status: 'REFUNDED' }
+            }),
+            ...(apt.slotId ? [prisma.slot.update({
+                where: { id: apt.slotId },
+                data: { status: 'AVAILABLE', lockedAt: null, lockedBy: null }
+            })] : [])
+        ]);
+
+        return { success: true, refundAmount: apt.amountPaid };
+    } catch (e) {
+        return { error: 'Could not process refund' };
     }
 }

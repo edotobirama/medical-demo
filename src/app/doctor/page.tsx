@@ -1,8 +1,9 @@
 import { Calendar, CheckCircle, Clock, Users, Video, MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
-import SlotManager from "@/components/SlotManager";
 import DoctorSettingsComponent from "@/components/DoctorSettings";
+import SlotManager from "@/components/SlotManager";
+import DoctorConsultationButtons from "@/components/DoctorConsultationButtons";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
@@ -36,7 +37,15 @@ export default async function DoctorDashboard() {
 
     // @ts-ignore
     const { doctorProfile } = doctorUser as any;
-    const appointments = doctorProfile.appointments;
+
+    // Filter out historical appointments (yesterday or older)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const appointments = doctorProfile.appointments.filter((a: any) => {
+        const time = a.slot?.startTime || a.requestedTime;
+        return time ? new Date(time) >= todayStart : false;
+    });
 
     // Calculate Stats
     const today = new Date();
@@ -50,6 +59,39 @@ export default async function DoctorDashboard() {
     // Let's filter digital vs offline
     const digitalConsults = appointments.filter((a: any) => a.type === 'ONLINE').length;
     const completed = appointments.filter((a: any) => a.status === 'COMPLETED').length;
+
+    const renderAppointment = (apt: any) => (
+        <div key={apt.id} className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md hover:border-primary p-6 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all">
+            <div className="flex items-center gap-5 w-full sm:w-auto">
+                <div className="text-primary bg-primary/10 font-bold font-mono text-lg px-4 py-3 rounded-xl border border-primary/20">
+                    {format(new Date(apt.slot?.startTime || apt.requestedTime), 'p')}
+                </div>
+                <div>
+                    <h4 className="font-bold text-card-foreground text-lg">{apt.patient.user.name}</h4>
+                    <div className="flex items-center gap-3 mt-1">
+                        <span className="text-muted-foreground text-sm flex items-center gap-1">
+                            {apt.type === 'ONLINE' ? <Video size={14} className="text-purple-500" /> : <MapPin size={14} className="text-blue-500" />}
+                            {apt.type === 'ONLINE' ? 'Digital Consult' : 'In-Person Visit'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${apt.status === "COMPLETED" ? "bg-green-50 text-green-700 border-green-200" :
+                        apt.status === "PENDING" ? "bg-orange-50 text-orange-700 border-orange-200" :
+                            "bg-blue-50 text-blue-700 border-blue-200"
+                    }`}>
+                    {apt.status}
+                </span>
+
+                <a href={`/inbox/${apt.patient.userId}`} className="btn btn-outline border-border py-2 text-sm px-3 hover:bg-secondary">
+                    Message
+                </a>
+
+                <DoctorConsultationButtons appointmentId={apt.id} status={apt.status} type={apt.type} />
+            </div>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-20">
@@ -88,53 +130,34 @@ export default async function DoctorDashboard() {
 
                 <div className="grid lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-foreground">Upcoming Sessions</h3>
-                            <button className="text-primary font-semibold text-sm hover:underline">View All</button>
+                        <div className="mb-8">
+                            <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                                <Video className="text-purple-500" /> Digital Consultations
+                            </h3>
+                            <div className="space-y-4">
+                                {appointments.filter((a: any) => a.type === 'ONLINE').length > 0 ? (
+                                    appointments.filter((a: any) => a.type === 'ONLINE').map((apt: any) => renderAppointment(apt))
+                                ) : (
+                                    <div className="text-center py-8 bg-secondary/50 rounded-xl border border-dashed border-border">
+                                        <p className="text-muted-foreground font-medium">No digital consultations scheduled.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="space-y-4">
-                            {appointments.length > 0 ? appointments.map((apt: any) => (
-                                <div key={apt.id} className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md hover:border-primary p-6 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all">
-                                    <div className="flex items-center gap-5 w-full sm:w-auto">
-                                        <div className="text-primary bg-primary/10 font-bold font-mono text-lg px-4 py-3 rounded-xl border border-primary/20">
-                                            {format(new Date(apt.slot?.startTime || apt.requestedTime), 'p')}
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-card-foreground text-lg">{apt.patient.user.name}</h4>
-                                            <div className="flex items-center gap-3 mt-1">
-                                                <span className="text-muted-foreground text-sm flex items-center gap-1">
-                                                    {apt.type === 'ONLINE' ? <Video size={14} className="text-purple-500" /> : <MapPin size={14} className="text-blue-500" />}
-                                                    {apt.type === 'ONLINE' ? 'Digital Consult' : 'In-Person Visit'}
-                                                </span>
-                                            </div>
-                                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                                <MapPin className="text-blue-500" /> In-person Visits
+                            </h3>
+                            <div className="space-y-4">
+                                {appointments.filter((a: any) => a.type !== 'ONLINE').length > 0 ? (
+                                    appointments.filter((a: any) => a.type !== 'ONLINE').map((apt: any) => renderAppointment(apt))
+                                ) : (
+                                    <div className="text-center py-8 bg-secondary/50 rounded-xl border border-dashed border-border">
+                                        <p className="text-muted-foreground font-medium">No in-person visits scheduled.</p>
                                     </div>
-                                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-                                        <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${apt.status === "COMPLETED" ? "bg-green-50 text-green-700 border-green-200" :
-                                            apt.status === "PENDING" ? "bg-orange-50 text-orange-700 border-orange-200" :
-                                                "bg-blue-50 text-blue-700 border-blue-200"
-                                            }`}>
-                                            {apt.status}
-                                        </span>
-
-                                        <a href={`/messages?patient=${apt.patient.id}`} className="btn btn-outline border-border py-2 text-sm px-3 hover:bg-secondary">
-                                            Message
-                                        </a>
-
-                                        {apt.type === 'ONLINE' && (
-                                            <a href={`/video/${apt.id}`} className="btn btn-primary py-2 text-sm px-4 bg-purple-600 hover:bg-purple-700 border-none shadow-md shadow-purple-500/20">
-                                                Join Video
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
-                            )) : (
-                                <div className="text-center py-12 bg-secondary/50 rounded-xl border border-dashed border-border">
-                                    <Calendar className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-                                    <p className="text-muted-foreground font-medium">No appointments scheduled.</p>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
 

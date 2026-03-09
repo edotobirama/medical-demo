@@ -37,6 +37,7 @@ export default function DoctorBookingWidget({
     // allow selection for today or tomorrow
     const [bookingDate, setBookingDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
     const [issue, setIssue] = useState("");
+    const [bookingType, setBookingType] = useState("in-person");
 
     const [simulation, setSimulation] = useState<any>(null);
     const [simulating, setSimulating] = useState(false);
@@ -120,7 +121,7 @@ export default function DoctorBookingWidget({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     doctorId,
-                    type: 'OFFLINE',
+                    type: bookingType, // 'in-person' or 'digital'
                     requestedTime: timestamp,
                     issueDescription: issue
                 })
@@ -160,6 +161,18 @@ export default function DoctorBookingWidget({
                         >
                             <option value={format(new Date(), 'yyyy-MM-dd')}>Today ({format(new Date(), 'MMM d')})</option>
                             <option value={format(new Date(Date.now() + 86400000), 'yyyy-MM-dd')}>Tomorrow ({format(new Date(Date.now() + 86400000), 'MMM d')})</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-foreground mb-1">Appointment Type</label>
+                        <select
+                            value={bookingType}
+                            onChange={e => setBookingType(e.target.value)}
+                            className="w-full border border-border rounded-lg px-3 py-2 bg-background focus:ring-2 focus:ring-primary outline-none"
+                        >
+                            <option value="in-person">In-Person Visit</option>
+                            <option value="digital">Digital Consultation</option>
                         </select>
                     </div>
 
