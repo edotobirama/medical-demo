@@ -40,9 +40,10 @@ export default async function DoctorDashboard() {
 
     // Calculate Stats
     const today = new Date();
-    const todaysPatients = appointments.filter((a: any) =>
-        new Date(a.slot.startTime).toDateString() === today.toDateString()
-    ).length;
+    const todaysPatients = appointments.filter((a: any) => {
+        const time = a.slot?.startTime || a.requestedTime;
+        return time ? new Date(time).toDateString() === today.toDateString() : false;
+    }).length;
 
     const pendingReviews = 5;
 
@@ -97,7 +98,7 @@ export default async function DoctorDashboard() {
                                 <div key={apt.id} className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md hover:border-primary p-6 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all">
                                     <div className="flex items-center gap-5 w-full sm:w-auto">
                                         <div className="text-primary bg-primary/10 font-bold font-mono text-lg px-4 py-3 rounded-xl border border-primary/20">
-                                            {format(new Date(apt.slot.startTime), 'p')}
+                                            {format(new Date(apt.slot?.startTime || apt.requestedTime), 'p')}
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-card-foreground text-lg">{apt.patient.user.name}</h4>
@@ -142,6 +143,8 @@ export default async function DoctorDashboard() {
                         <DoctorSettingsComponent
                             initialFee={doctorProfile.consultationFee}
                             initialIsAvailable={doctorProfile.isAvailable}
+                            initialOpeningTime={doctorProfile.openingTime || '09:00'}
+                            initialClosingTime={doctorProfile.closingTime || '17:00'}
                         />
                     </div>
                 </div>

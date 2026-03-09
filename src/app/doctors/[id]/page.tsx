@@ -123,8 +123,13 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
 
                 {/* Right Column: Booking Widget */}
                 <div className="lg:col-span-1">
-                    {doc.isAvailable ? (
-                        <DoctorBookingWidget doctorId={doc.id} userId={session?.user?.id} />
+                    {doc.isAvailable && doc.openingTime && doc.closingTime ? (
+                        <DoctorBookingWidget
+                            doctorId={doc.id}
+                            userId={session?.user?.id}
+                            openingTime={doc.openingTime}
+                            closingTime={doc.closingTime}
+                        />
                     ) : (
                         <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm text-center">
                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

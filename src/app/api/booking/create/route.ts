@@ -42,11 +42,27 @@ export async function POST(req: Request) {
                 throw new Error("Doctor not found");
             }
 
+            if (!doc.openingTime || !doc.closingTime) {
+                throw new Error("Doctor has not validated their time settings.");
+            }
+
+            const [openH, openM] = doc.openingTime.split(':').map(Number);
+            const [closeH, closeM] = doc.closingTime.split(':').map(Number);
+            const openMins = openH * 60 + openM;
+            const closeMins = closeH * 60 + closeM;
+
+            const startMins = reqTime.getHours() * 60 + reqTime.getMinutes();
+            const endMins = startMins + estimatedDuration;
+
+            if (startMins < openMins || endMins > closeMins) {
+                throw new Error("Appointment falls outside doctor's operating hours.");
+            }
+
             const partialFee = doc.consultationFee * 0.2; // 20% upfront
 
             return await tx.appointment.create({
                 data: {
-                    patientId: patient.patientProfile.id,
+                    patientId: patient.patientProfile!.id,
                     doctorId,
                     bookingNumber: newBookingNumber,
                     requestedTime: reqTime,

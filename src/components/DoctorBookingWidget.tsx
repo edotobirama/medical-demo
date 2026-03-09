@@ -7,7 +7,17 @@ import { Loader2, Calendar, Clock, CheckCircle, Hash, Users, CreditCard } from "
 import { useSession } from "next-auth/react";
 import clsx from "clsx";
 
-export default function DoctorBookingWidget({ doctorId, userId }: { doctorId: string, userId?: string }) {
+export default function DoctorBookingWidget({
+    doctorId,
+    userId,
+    openingTime = "09:00",
+    closingTime = "17:00"
+}: {
+    doctorId: string,
+    userId?: string,
+    openingTime?: string,
+    closingTime?: string
+}) {
     const router = useRouter();
     const [booking, setBooking] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -41,6 +51,21 @@ export default function DoctorBookingWidget({ doctorId, userId }: { doctorId: st
                 // Construct proper datetime string
                 const timestamp = new Date(`${bookingDate}T${requestedTime}:00`);
                 if (isNaN(timestamp.getTime())) return;
+
+                const [reqH, reqM] = requestedTime.split(':').map(Number);
+                const [openH, openM] = openingTime.split(':').map(Number);
+                const [closeH, closeM] = closingTime.split(':').map(Number);
+
+                const reqMins = reqH * 60 + reqM;
+                const openMins = openH * 60 + openM;
+                const closeMins = closeH * 60 + closeM;
+
+                if (reqMins < openMins || reqMins > closeMins) {
+                    setSimError(`Doctor available only between ${openingTime} and ${closingTime}`);
+                    setSimulation(null);
+                    setSimulating(false);
+                    return;
+                }
 
                 const res = await fetch('/api/booking/simulate', {
                     method: 'POST',
@@ -213,6 +238,10 @@ export default function DoctorBookingWidget({ doctorId, userId }: { doctorId: st
                         <div className="text-center py-6 text-red-500 text-sm font-semibold">
                             {simError}
                         </div>
+                    ) : simError ? (
+                        <div className="text-center py-6 text-rose-500 text-sm font-medium bg-rose-50 rounded-xl border border-rose-100">
+                            {simError}
+                        </div>
                     ) : (
                         <div className="text-center py-6 text-muted-foreground text-sm">
                             Enter time to calculate your priority and Waitlist position.
@@ -223,10 +252,10 @@ export default function DoctorBookingWidget({ doctorId, userId }: { doctorId: st
                 <div className="pt-2 border-t border-border">
                     <button
                         onClick={handlePaymentInitiation}
-                        disabled={booking || showPayment || !simulation || simulating}
+                        disabled={booking || showPayment || !simulation || simulating || simError !== null}
                         className={clsx(
                             "w-full py-4 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2",
-                            booking || !simulation || simulating
+                            booking || !simulation || simulating || simError !== null
                                 ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none"
                                 : "bg-primary hover:bg-primary/90 text-primary-foreground group"
                         )}
@@ -263,10 +292,10 @@ export default function DoctorBookingWidget({ doctorId, userId }: { doctorId: st
                                 </button>
                                 <button
                                     onClick={handleBooking}
-                                    disabled={booking}
-                                    className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold transition shadow-lg flex justify-center items-center"
+                                    disabled={simulating || booking || !simulation || simError !== null}
+                                    className="w-full mt-6 py-4 bg-primary hover:bg-primary/90 text-primary-foreground focus:ring-4 focus:ring-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] disabled:opacity-50"
                                 >
-                                    {booking ? <Loader2 className="animate-spin" size={18} /> : "OK"}
+                                    {booking ? (<Loader2 className="animate-spin" size={18} />) : "OK"}
                                 </button>
                             </div>
                         </div>

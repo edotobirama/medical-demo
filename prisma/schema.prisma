@@ -26,7 +26,6 @@ model User {
 
   // Relations
   sentMessages     Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
   uploadedReports  MedicalReport[] @relation("UploadedReports")
   auditLogs        AuditLog[]
 }
@@ -42,6 +41,8 @@ model DoctorProfile {
   department     String?
   consultationFee Float  @default(0)
   isAvailable     Boolean @default(true)
+  openingTime     String? @default("09:00")
+  closingTime     String? @default("17:00")
   
   achievements   String?   // JSON string
   rating         Float     @default(5.0)
@@ -173,11 +174,8 @@ model Message {
   senderId  String
   sender    User     @relation("SentMessages", fields: [senderId], references: [id])
   
-  content    String
-  createdAt  DateTime @default(now())
-  
-  receiverId String?
-  receiver   User?    @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
   
   // For a full system, you'd add ChatRooms/Sessions linking patients and doctors.
   chatRoomId String?

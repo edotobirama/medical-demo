@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
 import { auth, signOut } from '@/auth';
 import { redirect } from 'next/navigation';
+import CancelAppointmentButton from '@/components/CancelAppointmentButton';
 
 export const revalidate = 0;
 
@@ -165,12 +166,15 @@ export default async function PatientDashboard() {
                                             </div>
                                         </div>
                                         <div className="flex gap-2 w-full sm:w-auto">
-                                            <button className="flex-1 sm:flex-none btn btn-outline px-4 py-2 text-xs">Reschedule</button>
+                                            <Link href={`/book?doctorId=${app.doctorId}&reschedule=${app.id}`} className="flex-1 sm:flex-none btn btn-outline px-4 py-2 text-xs text-center">
+                                                Reschedule
+                                            </Link>
                                             {app.type === 'ONLINE' ? (
-                                                <Link href={`/video/${app.id}`} className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs">Join Video</Link>
+                                                <Link href={`/video/${app.id}`} className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs text-center">Join Video</Link>
                                             ) : (
-                                                <button className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs">Directions</button>
+                                                <Link href="/parking" className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs text-center">Directions</Link>
                                             )}
+                                            <CancelAppointmentButton appointmentId={app.id} />
                                         </div>
                                     </div>
                                 ))}

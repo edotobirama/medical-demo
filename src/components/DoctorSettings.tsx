@@ -8,9 +8,11 @@ import clsx from 'clsx';
 interface DoctorSettingsProps {
     initialFee: number;
     initialIsAvailable: boolean;
+    initialOpeningTime: string;
+    initialClosingTime: string;
 }
 
-export default function DoctorSettingsComponent({ initialFee, initialIsAvailable }: DoctorSettingsProps) {
+export default function DoctorSettingsComponent({ initialFee, initialIsAvailable, initialOpeningTime, initialClosingTime }: DoctorSettingsProps) {
     const [state, formAction, isPending] = useActionState(updateDoctorSettings, null);
 
     return (
@@ -52,6 +54,27 @@ export default function DoctorSettingsComponent({ initialFee, initialIsAvailable
                         />
                     </div>
                     <p className="text-[10px] text-slate-400 mt-2 ml-1">This fee will be displayed to patients when booking.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Opening Time</label>
+                        <input
+                            type="time"
+                            name="openingTime"
+                            defaultValue={initialOpeningTime}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all font-medium"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Closing Time</label>
+                        <input
+                            type="time"
+                            name="closingTime"
+                            defaultValue={initialClosingTime}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all font-medium"
+                        />
+                    </div>
                 </div>
 
                 <div className="pt-2">

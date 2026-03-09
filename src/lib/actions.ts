@@ -74,7 +74,14 @@ export async function registerUser(prevState: string | undefined, formData: Form
         return "Failed to register user.";
     }
 
-    redirect('/login?registered=true');
+    try {
+        await signIn('credentials', { email, password, redirectTo: '/patient' });
+    } catch (error) {
+        if (error instanceof AuthError) {
+            return 'Failed to log in after registration.';
+        }
+        throw error;
+    }
 }
 
 
@@ -181,6 +188,8 @@ export async function updateDoctorSettings(
 
     const consultationFee = parseFloat(formData.get('consultationFee') as string);
     const isAvailable = formData.get('isAvailable') === 'on';
+    const openingTime = formData.get('openingTime') as string;
+    const closingTime = formData.get('closingTime') as string;
 
     if (isNaN(consultationFee) || consultationFee < 0) {
         return { error: 'Please enter a valid consultation fee.' };
@@ -192,11 +201,45 @@ export async function updateDoctorSettings(
             data: {
                 consultationFee,
                 isAvailable,
+                openingTime,
+                closingTime
             },
         });
         return { success: true };
     } catch (error) {
         console.error('Error updating doctor settings:', error);
         return { error: 'Failed to update settings. Please try again.' };
+    }
+}
+
+export async function cancelAppointment(appointmentId: string) {
+    const session = await auth();
+    if (!session?.user) {
+        throw new Error('Unauthorized');
+    }
+
+    try {
+        const apt = await prisma.appointment.findUnique({
+            where: { id: appointmentId },
+            include: { patient: { include: { user: true } } }
+        });
+
+        if (!apt) throw new Error('Not found');
+        if (apt.patient.user.id !== session.user.id) throw new Error('Unauthorized');
+
+        await prisma.$transaction([
+            prisma.appointment.update({
+                where: { id: appointmentId },
+                data: { status: 'CANCELLED' }
+            }),
+            ...(apt.slotId ? [prisma.slot.update({
+                where: { id: apt.slotId },
+                data: { status: 'AVAILABLE', lockedAt: null, lockedBy: null }
+            })] : [])
+        ]);
+
+        return { success: true };
+    } catch (e) {
+        return { error: 'Could not cancel appointment' };
     }
 }
