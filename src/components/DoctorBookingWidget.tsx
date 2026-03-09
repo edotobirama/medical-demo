@@ -213,26 +213,83 @@ export default function DoctorBookingWidget({
 
                     <h4 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider flex items-center gap-2">
                         <Clock className="w-4 h-4 text-primary" />
-                        Live Queue Simulation
+                        Live Waitlist & Schedule
                     </h4>
 
                     {simulation ? (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* Stats Row */}
+                            <div className="grid grid-cols-3 gap-3">
                                 <div className="bg-background rounded-lg p-3 border border-border text-center shadow-sm">
-                                    <div className="text-xs font-semibold text-muted-foreground mb-1 flex justify-center items-center gap-1">
-                                        <Hash className="w-3 h-3" /> Booking #
+                                    <div className="text-[10px] font-semibold text-muted-foreground mb-1 flex justify-center items-center gap-1">
+                                        <Hash className="w-3 h-3" /> Your #
                                     </div>
-                                    <div className="text-2xl font-black text-foreground">#{simulation.bookingNumber}</div>
+                                    <div className="text-xl font-black text-foreground">#{simulation.bookingNumber}</div>
                                 </div>
                                 <div className="bg-background rounded-lg p-3 border border-border text-center shadow-sm">
-                                    <div className="text-xs font-semibold text-muted-foreground mb-1 flex justify-center items-center gap-1">
-                                        <Users className="w-3 h-3" /> Ahead of You
+                                    <div className="text-[10px] font-semibold text-muted-foreground mb-1 flex justify-center items-center gap-1">
+                                        <Users className="w-3 h-3" /> Ahead
                                     </div>
-                                    <div className="text-2xl font-black text-foreground">{simulation.estimatedWaitlist}</div>
+                                    <div className="text-xl font-black text-foreground">{simulation.estimatedWaitlist}</div>
+                                </div>
+                                <div className="bg-background rounded-lg p-3 border border-border text-center shadow-sm">
+                                    <div className="text-[10px] font-semibold text-muted-foreground mb-1 flex justify-center items-center gap-1">
+                                        <Users className="w-3 h-3" /> Today
+                                    </div>
+                                    <div className="text-xl font-black text-foreground">{simulation.todaysTotalBooked}</div>
                                 </div>
                             </div>
 
+                            {/* Today's Booked Patients List */}
+                            {simulation.existingBookings && simulation.existingBookings.length > 0 && (
+                                <div className="bg-background rounded-lg border border-border overflow-hidden">
+                                    <div className="px-3 py-2 bg-muted/50 border-b border-border">
+                                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                                            Today's Booked Patients ({simulation.existingBookings.length})
+                                        </p>
+                                    </div>
+                                    <div className="max-h-40 overflow-y-auto divide-y divide-border">
+                                        {simulation.existingBookings.map((b: any, i: number) => (
+                                            <div key={i} className="flex items-center justify-between px-3 py-2 text-xs hover:bg-muted/30 transition-colors">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-black text-primary bg-primary/10 w-6 h-6 flex items-center justify-center rounded-md text-[10px]">
+                                                        #{b.bookingNumber}
+                                                    </span>
+                                                    <span className="font-semibold text-foreground truncate max-w-[100px]">{b.patientName}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${b.type === 'ONLINE' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                        {b.type === 'ONLINE' ? 'Digital' : 'In-person'}
+                                                    </span>
+                                                    <span className="text-muted-foreground font-mono">
+                                                        {format(new Date(b.requestedTime), 'h:mm a')}
+                                                    </span>
+                                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${b.status === 'IN_PROGRESS' ? 'bg-emerald-100 text-emerald-700' :
+                                                            b.status === 'BOOKED' ? 'bg-sky-100 text-sky-700' :
+                                                                'bg-gray-100 text-gray-600'
+                                                        }`}>
+                                                        {b.status === 'IN_PROGRESS' ? 'Live' : b.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {/* Your projected row */}
+                                    <div className="flex items-center justify-between px-3 py-2 bg-primary/5 border-t-2 border-primary/20">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-black text-primary bg-primary/20 w-6 h-6 flex items-center justify-center rounded-md text-[10px] ring-2 ring-primary/30">
+                                                #{simulation.bookingNumber}
+                                            </span>
+                                            <span className="font-bold text-primary text-xs">You (projected)</span>
+                                        </div>
+                                        <span className="text-primary font-mono text-xs font-bold">
+                                            {format(new Date(simulation.actualStartTime), 'h:mm a')}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Wait Time Summary */}
                             <div className="bg-orange-50 dark:bg-orange-950/20 rounded-lg p-3 border border-orange-100 dark:border-orange-900/40">
                                 <div className="flex justify-between items-center text-sm mb-1">
                                     <span className="font-semibold text-orange-900 dark:text-orange-400">Est. Wait Time:</span>
@@ -243,16 +300,12 @@ export default function DoctorBookingWidget({
                                     <span className="font-bold text-primary">{format(new Date(simulation.actualStartTime), 'h:mm a')}</span>
                                 </div>
                                 <div className="text-[10px] text-muted-foreground mt-2 border-t pt-2 border-orange-200/50">
-                                    AI estimated duration: {simulation.estimatedDuration} mins
+                                    AI estimated duration: {simulation.estimatedDuration} mins • Queue position: {simulation.queuePosition}
                                 </div>
                             </div>
                         </div>
                     ) : simError ? (
                         <div className="text-center py-6 text-red-500 text-sm font-semibold">
-                            {simError}
-                        </div>
-                    ) : simError ? (
-                        <div className="text-center py-6 text-rose-500 text-sm font-medium bg-rose-50 rounded-xl border border-rose-100">
                             {simError}
                         </div>
                     ) : (

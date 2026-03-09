@@ -263,7 +263,10 @@ export async function completeAppointment(appointmentId: string) {
 
         await prisma.appointment.update({
             where: { id: appointmentId },
-            data: { status: 'COMPLETED' }
+            data: {
+                status: 'COMPLETED',
+                actualEndTime: new Date()
+            }
         });
 
         return { success: true };

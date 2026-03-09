@@ -23,12 +23,25 @@ export async function POST(req: Request) {
 
         const reqTime = new Date(requestedTime);
         const issueStr = issueDescription || "general";
-        const estimatedDuration = Math.max(10, Math.min(60, (issueStr.length % 30) + 10)); // 10 to 40 mins
+        const estimatedDuration = Math.max(10, Math.min(60, (issueStr.length % 30) + 10));
+
+        // Build day boundaries for the requested date (daily scoping)
+        const dayStart = new Date(reqTime);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(reqTime);
+        dayEnd.setHours(23, 59, 59, 999);
 
         // Transaction to ensure atomic booking number generation
         const appointment = await prisma.$transaction(async (tx) => {
+            // Get max booking number for THIS DAY only (daily reset)
             const maxBookingNum = await tx.appointment.aggregate({
-                where: { doctorId },
+                where: {
+                    doctorId,
+                    requestedTime: {
+                        gte: dayStart,
+                        lte: dayEnd
+                    }
+                },
                 _max: { bookingNumber: true }
             });
 
@@ -56,6 +69,19 @@ export async function POST(req: Request) {
 
             if (startMins < openMins || endMins > closeMins) {
                 throw new Error("Appointment falls outside doctor's operating hours.");
+            }
+
+            // Check for overlapping slots — prevent double booking at the same time
+            const overlapping = await tx.appointment.findFirst({
+                where: {
+                    doctorId,
+                    status: { in: ['BOOKED', 'RESCHEDULED', 'TURN_ARRIVED', 'IN_PROGRESS'] },
+                    requestedTime: reqTime
+                }
+            });
+
+            if (overlapping) {
+                throw new Error("This exact time slot is already taken. Please select a different time.");
             }
 
             const partialFee = doc.consultationFee * 0.2; // 20% upfront
