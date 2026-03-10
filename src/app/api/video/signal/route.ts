@@ -7,6 +7,7 @@ import { auth } from '@/auth';
 const callSignals = new Map<string, {
     status: 'RINGING' | 'CONNECTED' | 'ENDED' | 'MISSED';
     initiatedAt: number;
+    lastHeartbeat: number; // For detecting dropped calls
     endedAt: number | null;
     endedBy: 'DOCTOR' | 'PATIENT' | null;
     doctorName: string;
@@ -15,27 +16,41 @@ const callSignals = new Map<string, {
     appointmentId: string;
 }>();
 
-// Clean up stale signals (older than 2 minutes for RINGING, 5 minutes total)
+// Clean up stale signals (older than 2 minutes for RINGING, or no heartbeat for 20s)
 function cleanupStaleSignals() {
     const now = Date.now();
     for (const [key, signal] of callSignals.entries()) {
         // Auto-expire RINGING after 2 minutes
         if (signal.status === 'RINGING' && now - signal.initiatedAt > 120000) {
-            callSignals.set(key, { ...signal, status: 'MISSED' });
+            callSignals.set(key, { ...signal, status: 'MISSED', lastHeartbeat: now });
         }
-        // Keep ENDED signals for 30 seconds so the other party can poll and detect it
-        if (signal.status === 'ENDED' && signal.endedAt && now - signal.endedAt > 30000) {
+
+        // Detect DROPPED calls (no heartbeat for 20 seconds while CONNECTED)
+        if (signal.status === 'CONNECTED' && now - signal.lastHeartbeat > 20000) {
+            callSignals.set(key, {
+                ...signal,
+                status: 'ENDED',
+                endedAt: now,
+                endedBy: null, // Indicates a drop
+                lastHeartbeat: now
+            });
+            continue;
+        }
+
+        // Keep ENDED signals for 1 minute (increased from 30s) so redirections and final status checks work reliably
+        if (signal.status === 'ENDED' && signal.endedAt && now - signal.endedAt > 60000) {
             callSignals.delete(key);
             continue;
         }
-        // Remove very old signals (5+ minutes)
-        if (now - signal.initiatedAt > 300000 && signal.status !== 'ENDED') {
+
+        // Remove very old signals (10+ minutes)
+        if (now - signal.initiatedAt > 600000 && signal.status !== 'ENDED') {
             callSignals.delete(key);
         }
     }
 }
 
-// POST: Doctor initiates a call / updates signal
+// POST: Doctor initiates a call / updates signal / heartbeat
 export async function POST(req: Request) {
     try {
         const session = await auth();
@@ -74,6 +89,7 @@ export async function POST(req: Request) {
                 callSignals.set(appointmentId, {
                     status: 'RINGING',
                     initiatedAt: Date.now(),
+                    lastHeartbeat: Date.now(),
                     endedAt: null,
                     endedBy: null,
                     doctorName: appointment.doctor.user.name || 'Doctor',
@@ -101,9 +117,18 @@ export async function POST(req: Request) {
                 // Patient answers
                 const signal = callSignals.get(appointmentId);
                 if (signal) {
-                    callSignals.set(appointmentId, { ...signal, status: 'CONNECTED' });
+                    callSignals.set(appointmentId, { ...signal, status: 'CONNECTED', lastHeartbeat: Date.now() });
                 }
                 return NextResponse.json({ success: true, status: 'CONNECTED' });
+            }
+
+            case 'HEARTBEAT': {
+                // Active participation pulse
+                const signal = callSignals.get(appointmentId);
+                if (signal && (signal.status === 'CONNECTED' || signal.status === 'RINGING')) {
+                    callSignals.set(appointmentId, { ...signal, lastHeartbeat: Date.now() });
+                }
+                return NextResponse.json({ success: true });
             }
 
             case 'END': {
@@ -116,14 +141,15 @@ export async function POST(req: Request) {
                         ...signal,
                         status: 'ENDED',
                         endedAt: Date.now(),
-                        endedBy: endedBy as 'DOCTOR' | 'PATIENT'
+                        endedBy: endedBy as 'DOCTOR' | 'PATIENT',
+                        lastHeartbeat: Date.now()
                     });
                 } else {
-                    // Create an ENDED signal even if no prior signal existed
-                    // (handles case where doctor ends from consultation page)
+                    // Create an ENDED signal if it didn't exist
                     callSignals.set(appointmentId, {
                         status: 'ENDED',
                         initiatedAt: Date.now(),
+                        lastHeartbeat: Date.now(),
                         endedAt: Date.now(),
                         endedBy: endedBy as 'DOCTOR' | 'PATIENT',
                         doctorName: appointment.doctor.user.name || 'Doctor',
@@ -132,6 +158,16 @@ export async function POST(req: Request) {
                         appointmentId
                     });
                 }
+
+                // Update the appointment in the database to COMPLETED
+                await prisma.appointment.update({
+                    where: { id: appointmentId },
+                    data: {
+                        status: 'COMPLETED',
+                        actualEndTime: new Date(),
+                        notes: appointment.notes || `Call ended by ${endedBy}`
+                    }
+                });
 
                 return NextResponse.json({
                     success: true,
@@ -144,7 +180,7 @@ export async function POST(req: Request) {
                 // Patient dismisses the notification without answering
                 const signal = callSignals.get(appointmentId);
                 if (signal) {
-                    callSignals.set(appointmentId, { ...signal, status: 'MISSED' });
+                    callSignals.set(appointmentId, { ...signal, status: 'MISSED', lastHeartbeat: Date.now() });
                 }
                 return NextResponse.json({ success: true, status: 'MISSED' });
             }

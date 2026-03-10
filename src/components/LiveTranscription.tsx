@@ -145,6 +145,10 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         };
 
         recognition.onerror = (event: any) => {
+            if (event.error === 'aborted') {
+                // Safely ignore aborted errors; this happens intentionally when stop() is called
+                return;
+            }
             console.error('Speech recognition error:', event.error);
             if (event.error === 'not-allowed') {
                 alert('Microphone permission denied. Please allow microphone access.');

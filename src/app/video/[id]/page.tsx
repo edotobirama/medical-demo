@@ -72,7 +72,13 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                         height: { ideal: 2160, min: 720 },
                         frameRate: { ideal: 30 }
                     },
-                    audio: true
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 48000,
+                        channelCount: 2
+                    }
                 });
 
                 if (cancelled) {
@@ -187,6 +193,26 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         return () => clearTimeout(timer);
     }, [appointmentId, session]);
 
+    // Reliable Heartbeat: Maintain the session and detect disconnects
+    useEffect(() => {
+        if (!appointmentId || !connected || callEnded) return;
+
+        const sendHeartbeat = async () => {
+            try {
+                await fetch('/api/video/signal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ appointmentId, action: 'HEARTBEAT' })
+                });
+            } catch (e) {
+                // Ignore heartbeat network fails, but polling will catch actual drops
+            }
+        };
+
+        const interval = setInterval(sendHeartbeat, 10000); // 10s heartbeat
+        return () => clearInterval(interval);
+    }, [appointmentId, connected, callEnded]);
+
     // Call duration timer
     useEffect(() => {
         if (connected && !durationRef.current) {
@@ -215,10 +241,19 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
 
                 if (data.callEnded && !endedRef.current) {
                     endedRef.current = true;
-                    // The other party ended the call
+                    // Global Signal Received: The other party or system terminated the call
                     setCallEnded(true);
-                    setEndedBy(data.endedBy);
+                    setEndedBy(data.endedBy || null);
                     setConnected(false);
+
+                    // Force media stream termination on this device immediately
+                    if (localStreamRef.current) {
+                        localStreamRef.current.getTracks().forEach(track => {
+                            track.stop();
+                            track.enabled = false;
+                        });
+                        localStreamRef.current = null;
+                    }
 
                     if (durationRef.current) {
                         clearInterval(durationRef.current);
@@ -284,9 +319,12 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         if (endedRef.current) return; // Prevent double-ending
         endedRef.current = true;
 
-        // Stop all camera/mic tracks immediately
+        // Stop all camera/mic tracks immediately & Release Hardware
         if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(track => track.stop());
+            localStreamRef.current.getTracks().forEach(track => {
+                track.stop();
+                track.enabled = false; // Force immediate disable
+            });
             localStreamRef.current = null;
         }
 
@@ -300,7 +338,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
             durationRef.current = null;
         }
 
-        // Send END signal to server so the other party detects it
+        // Send Global TERMINATE signal to Signaling Server
         try {
             await fetch('/api/video/signal', {
                 method: 'POST',
