@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
     Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare,
-    MonitorUp, Maximize2, Minimize2, Clock, User, Wifi, WifiOff, AlertCircle,
+    Maximize2, Minimize2, Clock, User, Wifi, WifiOff, AlertCircle,
     FileText, Lightbulb
 } from "lucide-react";
 import clsx from "clsx";
@@ -718,15 +718,6 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 </button>
 
                 <div className="w-px h-8 bg-neutral-700 mx-1" />
-
-                {/* Screen Share */}
-                <button
-                    className="w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-neutral-700 text-white transition-all hover:bg-neutral-600 hover:-translate-y-1 shadow-lg"
-                    title="Share screen"
-                >
-                    <MonitorUp size={20} />
-                </button>
-
                 {/* Chat */}
                 <button
                     onClick={() => setShowChat(!showChat)}
