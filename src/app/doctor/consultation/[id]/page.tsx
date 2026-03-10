@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { User, Calendar, Clock, Activity, FileText, ArrowLeft, Video, ShieldAlert } from 'lucide-react';
 import EndConsultationButton from '@/components/EndConsultationButton';
 import CallPatientButton from '@/components/CallPatientButton';
+import MedicalReportGenerator from '@/components/MedicalReportGenerator';
 
 export const revalidate = 0;
 
@@ -198,6 +199,11 @@ async function ConsultationFetcher({ id }: { id: string }) {
                                 </div>
                             )}
                         </div>
+
+                        {/* AI Medical Report Generator — for digital consultations */}
+                        {appointment.type === 'ONLINE' && (
+                            <MedicalReportGenerator appointmentId={appointment.id} />
+                        )}
                     </div>
                 </div>
             </main>

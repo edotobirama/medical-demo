@@ -6,6 +6,7 @@ import SlotManager from "@/components/SlotManager";
 import DoctorConsultationButtons from "@/components/DoctorConsultationButtons";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import DoctorFollowUpBooking from "@/components/DoctorFollowUpBooking";
 
 export const revalidate = 0;
 
@@ -108,6 +109,7 @@ export default async function DoctorDashboard() {
                         <p className="text-muted-foreground">{doctorProfile.specialization} • Shift ends at 5:00 PM</p>
                     </div>
                     <div className="flex gap-2">
+                        <DoctorFollowUpBooking doctorId={doctorProfile.id} />
                         <div className="bg-green-100 text-green-700 px-4 py-2 rounded-lg font-semibold flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Online
                         </div>

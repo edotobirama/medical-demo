@@ -147,7 +147,8 @@ model MedicalReport {
   
   title     String
   fileUrl   String   // Encrypted path or URL
-  fileType  String   // PDF, JPG, etc.
+  fileType  String   // PDF, JPG, DOCX, etc.
+  fileSize  Int      @default(0)   // Size in bytes
   
   // AI Analysis (Stored as JSON for flexibility)
   aiSummary      String?
@@ -155,6 +156,24 @@ model MedicalReport {
   aiPatientNotes String?
   
   createdAt DateTime @default(now())
+}
+
+model ConsultationTranscript {
+  id            String   @id @default(cuid())
+  appointmentId String
+  
+  language      String   @default("en")       // Original language code (e.g. "en", "es", "hi")
+  originalText  String                         // Raw transcript in original language
+  englishText   String?                        // AI-translated English version
+  
+  aiSummary     String?                        // AI-generated medical summary
+  aiKeyIssues   String?                        // JSON: extracted key issues
+  aiRecommendations String?                    // JSON: AI recommendations
+  
+  speakerRole   String   @default("UNKNOWN")  // DOCTOR, PATIENT, UNKNOWN
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model AuditLog {

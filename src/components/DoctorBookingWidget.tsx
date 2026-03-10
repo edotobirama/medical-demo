@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Loader2, Calendar, Clock, CheckCircle, Hash, Users, CreditCard } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle, Hash, Users, CreditCard, AlertCircle } from "lucide-react";
 import { useSession } from "next-auth/react";
 import clsx from "clsx";
 
@@ -44,6 +44,8 @@ export default function DoctorBookingWidget({
     const [simulation, setSimulation] = useState<any>(null);
     const [simulating, setSimulating] = useState(false);
     const [simError, setSimError] = useState<string | null>(null);
+    const [alreadyBooked, setAlreadyBooked] = useState<any>(null);
+    const [checkingBooking, setCheckingBooking] = useState(false);
 
     // Call Simulation API
     useEffect(() => {
@@ -102,6 +104,27 @@ export default function DoctorBookingWidget({
         return () => clearTimeout(debounce);
     }, [doctorId, requestedTime, bookingDate, issue]);
 
+    // Check for existing booking on selected date
+    useEffect(() => {
+        const checkExistingBooking = async () => {
+            if (!bookingDate) return;
+            setCheckingBooking(true);
+            try {
+                const res = await fetch(`/api/booking/check?date=${bookingDate}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setAlreadyBooked(data.hasBooking ? data.booking : null);
+                }
+            } catch (e) {
+                console.error('Booking check error:', e);
+            } finally {
+                setCheckingBooking(false);
+            }
+        };
+
+        checkExistingBooking();
+    }, [bookingDate]);
+
     const handlePaymentInitiation = () => {
         const isAuthenticated = !!userId || !!session;
         if (!isAuthenticated) {
@@ -136,7 +159,14 @@ export default function DoctorBookingWidget({
                 setShowPayment(false);
                 setIsSuccess(true);
             } else {
-                alert(`Booking Failed: ${data.error || "Unknown error"}`);
+                // Handle duplicate booking error specifically
+                if (data.error?.includes('DUPLICATE_BOOKING')) {
+                    setAlreadyBooked({ status: 'BOOKED' });
+                    setShowPayment(false);
+                    alert('You already have an active appointment booked for this day.');
+                } else {
+                    alert(`Booking Failed: ${data.error || "Unknown error"}`);
+                }
             }
         } catch (e) {
             console.error("Booking Error:", e);
@@ -318,17 +348,40 @@ export default function DoctorBookingWidget({
                 </div>
 
                 <div className="pt-2 border-t border-border">
+                    {/* Already Booked Banner */}
+                    {alreadyBooked && (
+                        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                            <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-bold text-amber-900">Already Booked Today</p>
+                                <p className="text-xs text-amber-700 mt-0.5">
+                                    You have an active {alreadyBooked.type === 'ONLINE' ? 'digital' : 'in-person'} appointment
+                                    {alreadyBooked.doctorName ? ` with ${alreadyBooked.doctorName}` : ''}
+                                    {alreadyBooked.requestedTime ? ` at ${format(new Date(alreadyBooked.requestedTime), 'h:mm a')}` : ''}.
+                                    Only one booking per day is allowed.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     <button
                         onClick={handlePaymentInitiation}
-                        disabled={booking || showPayment || !simulation || simulating || simError !== null}
+                        disabled={booking || showPayment || !simulation || simulating || simError !== null || !!alreadyBooked}
                         className={clsx(
                             "w-full py-4 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2",
-                            booking || !simulation || simulating || simError !== null
-                                ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none"
-                                : "bg-primary hover:bg-primary/90 text-primary-foreground group"
+                            alreadyBooked
+                                ? "bg-amber-100 text-amber-700 cursor-not-allowed shadow-none border border-amber-200"
+                                : booking || !simulation || simulating || simError !== null
+                                    ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none"
+                                    : "bg-primary hover:bg-primary/90 text-primary-foreground group"
                         )}
                     >
-                        {booking ? <Loader2 className="animate-spin" size={18} /> : (
+                        {alreadyBooked ? (
+                            <>
+                                <AlertCircle className="w-4 h-4" />
+                                Already Booked for This Day
+                            </>
+                        ) : booking ? <Loader2 className="animate-spin" size={18} /> : (
                             <>
                                 <CreditCard className="w-4 h-4 group-hover:-translate-y-0.5 transition" />
                                 Pay & Secure ##{simulation?.bookingNumber ?? '-'}

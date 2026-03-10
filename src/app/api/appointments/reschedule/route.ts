@@ -33,13 +33,13 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
         }
 
-        if (appointment.status !== 'BOOKED') {
-            return NextResponse.json({ error: "Only booked appointments can be rescheduled" }, { status: 400 });
+        if (!['BOOKED', 'RESCHEDULED'].includes(appointment.status)) {
+            return NextResponse.json({ error: "Only booked or rescheduled appointments can be rescheduled" }, { status: 400 });
         }
 
-        // Reschedule Quota Check
-        if (appointment.rescheduleCount >= 2) {
-            return NextResponse.json({ error: "You have exhausted your 2 maximum reschedules." }, { status: 400 });
+        // Reschedule Quota Check — 3 attempts max
+        if (appointment.rescheduleCount >= 3) {
+            return NextResponse.json({ error: "You have exhausted your 3 maximum reschedules for this appointment." }, { status: 400 });
         }
 
         return await prisma.$transaction(async (tx) => {

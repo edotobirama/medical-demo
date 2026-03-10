@@ -6,6 +6,8 @@ import { auth, signOut } from '@/auth';
 import { redirect } from 'next/navigation';
 import CancelAppointmentButton from '@/components/CancelAppointmentButton';
 import PatientRefundReschedule from '@/components/PatientRefundReschedule';
+import DocumentUpload from '@/components/DocumentUpload';
+import PatientRescheduleButton from '@/components/PatientRescheduleButton';
 
 export const revalidate = 0;
 
@@ -223,9 +225,14 @@ export default async function PatientDashboard() {
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                                            <Link href={`/book?doctorId=${app.doctorId}&reschedule=${app.id}`} className="flex-1 sm:flex-none btn btn-outline px-4 py-2 text-xs text-center border-border">
-                                                Reschedule
-                                            </Link>
+                                            <PatientRescheduleButton
+                                                appointmentId={app.id}
+                                                currentTime={app.requestedTime?.toISOString() || new Date().toISOString()}
+                                                rescheduleCount={app.rescheduleCount || 0}
+                                                maxReschedules={3}
+                                                doctorOpeningTime={app.doctor.openingTime || '09:00'}
+                                                doctorClosingTime={app.doctor.closingTime || '17:00'}
+                                            />
                                             <CancelAppointmentButton appointmentId={app.id} />
                                             {app.type === 'ONLINE' ? (
                                                 <Link href={`/video/${app.id}`} className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs text-center">Join Video</Link>
@@ -255,13 +262,26 @@ export default async function PatientDashboard() {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                                <FileText size={20} className="text-primary" /> Recent Medical Reports
+                                <FileText size={20} className="text-primary" /> Medical Records
                             </h3>
                             <button className="text-sm font-medium text-primary hover:brightness-110 hover:underline">
                                 View History
                             </button>
                         </div>
 
+                        {/* Document Upload */}
+                        <div className="bg-card rounded-xl border border-border shadow-sm p-5 mb-4">
+                            <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                                📤 Upload Medical Documents
+                            </h4>
+                            <p className="text-xs text-muted-foreground mb-4">
+                                Upload your medical records, lab results, and prescriptions to keep them accessible to your doctors across sessions.
+                            </p>
+                            <DocumentUpload />
+                        </div>
+
+                        {/* Existing Reports */}
+                        <h4 className="text-sm font-bold text-foreground mb-3">Your Documents</h4>
                         <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
                             {reports.length > 0 ? (
                                 <table className="w-full text-left text-sm">

@@ -33,6 +33,22 @@ export async function POST(req: Request) {
 
         // Transaction to ensure atomic booking number generation
         const appointment = await prisma.$transaction(async (tx) => {
+            // DUPLICATE BOOKING PREVENTION: Check if patient already has an active booking today
+            const existingBookingToday = await tx.appointment.findFirst({
+                where: {
+                    patientId: patient.patientProfile!.id,
+                    status: { in: ['BOOKED', 'RESCHEDULED', 'TURN_ARRIVED', 'IN_PROGRESS'] },
+                    requestedTime: {
+                        gte: dayStart,
+                        lte: dayEnd
+                    }
+                }
+            });
+
+            if (existingBookingToday) {
+                throw new Error("DUPLICATE_BOOKING: You already have an active appointment booked for this day. Only one appointment per day is allowed.");
+            }
+
             // Get max booking number for THIS DAY only (daily reset)
             const maxBookingNum = await tx.appointment.aggregate({
                 where: {
