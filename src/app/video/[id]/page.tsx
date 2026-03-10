@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
     Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare,
-    MonitorUp, Maximize2, Minimize2, Clock, User, Wifi, WifiOff
+    MonitorUp, Maximize2, Minimize2, Clock, User, Wifi, WifiOff, AlertCircle
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -37,12 +38,103 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
     const [chatMessages, setChatMessages] = useState<{ from: string; text: string; time: string }[]>([]);
     const [chatInput, setChatInput] = useState("");
     const [reconnecting, setReconnecting] = useState(false);
+    const [callEnded, setCallEnded] = useState(false);
+    const [endedBy, setEndedBy] = useState<'DOCTOR' | 'PATIENT' | 'SELF' | null>(null);
+    const [redirectCountdown, setRedirectCountdown] = useState(4);
+    const [cameraError, setCameraError] = useState<string | null>(null);
+    const [hasCamera, setHasCamera] = useState(false);
     const durationRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const endedRef = useRef(false);
+    const localVideoRef = useRef<HTMLVideoElement>(null);
+    const localStreamRef = useRef<MediaStream | null>(null);
 
     // Resolve params
     useEffect(() => {
         params.then(p => setAppointmentId(p.id));
     }, [params]);
+
+    // Initialize camera — request primary device camera at native resolution
+    useEffect(() => {
+        let cancelled = false;
+
+        const initCamera = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user',         // Default front-facing camera
+                        width: { ideal: 3840, min: 1280 },   // Up to 4K, minimum 720p
+                        height: { ideal: 2160, min: 720 },
+                        frameRate: { ideal: 30 }
+                    },
+                    audio: true
+                });
+
+                if (cancelled) {
+                    stream.getTracks().forEach(t => t.stop());
+                    return;
+                }
+
+                localStreamRef.current = stream;
+                setHasCamera(true);
+
+                // Attach to video element
+                if (localVideoRef.current) {
+                    localVideoRef.current.srcObject = stream;
+                }
+            } catch (err: any) {
+                if (cancelled) return;
+                console.error('Camera access error:', err);
+                if (err.name === 'NotAllowedError') {
+                    setCameraError('Camera access was denied. Please allow camera permissions and reload.');
+                } else if (err.name === 'NotFoundError') {
+                    setCameraError('No camera found on this device.');
+                } else {
+                    setCameraError('Unable to access camera. Please check your device settings.');
+                }
+            }
+        };
+
+        initCamera();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    // Re-attach stream to video element when ref becomes available
+    useEffect(() => {
+        if (localVideoRef.current && localStreamRef.current) {
+            localVideoRef.current.srcObject = localStreamRef.current;
+        }
+    });
+
+    // Toggle audio track when muted state changes
+    useEffect(() => {
+        if (localStreamRef.current) {
+            localStreamRef.current.getAudioTracks().forEach(track => {
+                track.enabled = !muted;
+            });
+        }
+    }, [muted]);
+
+    // Toggle video track when videoOff state changes
+    useEffect(() => {
+        if (localStreamRef.current) {
+            localStreamRef.current.getVideoTracks().forEach(track => {
+                track.enabled = !videoOff;
+            });
+        }
+    }, [videoOff]);
+
+    // Clean up camera stream on unmount or call end
+    useEffect(() => {
+        return () => {
+            if (localStreamRef.current) {
+                localStreamRef.current.getTracks().forEach(track => track.stop());
+                localStreamRef.current = null;
+            }
+        };
+    }, []);
 
     // Fetch appointment data
     useEffect(() => {
@@ -105,6 +197,65 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         };
     }, [connected]);
 
+    // Poll for remote call termination — the key to synchronized ending
+    useEffect(() => {
+        if (!appointmentId || !connected || callEnded) return;
+
+        const checkCallStatus = async () => {
+            try {
+                const res = await fetch(`/api/video/signal?appointmentId=${appointmentId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.callEnded && !endedRef.current) {
+                    endedRef.current = true;
+                    // The other party ended the call
+                    setCallEnded(true);
+                    setEndedBy(data.endedBy);
+                    setConnected(false);
+
+                    if (durationRef.current) {
+                        clearInterval(durationRef.current);
+                        durationRef.current = null;
+                    }
+                }
+            } catch (e) {
+                // Silent fail
+            }
+        };
+
+        const interval = setInterval(checkCallStatus, 3000);
+        return () => clearInterval(interval);
+    }, [appointmentId, connected, callEnded]);
+
+    // Redirect countdown after call ends
+    useEffect(() => {
+        if (!callEnded) return;
+
+        const countdown = setInterval(() => {
+            setRedirectCountdown(prev => {
+                if (prev <= 1) {
+                    clearInterval(countdown);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(countdown);
+    }, [callEnded]);
+
+    // Perform redirect when countdown reaches 0
+    useEffect(() => {
+        if (!callEnded || redirectCountdown > 0) return;
+
+        if (session?.user?.role === 'DOCTOR') {
+            router.push(`/doctor/consultation/${appointmentId}`);
+        } else {
+            router.push('/patient');
+        }
+    }, [callEnded, redirectCountdown, session, appointmentId, router]);
+
     // Simulate connection quality changes
     useEffect(() => {
         if (!connected) return;
@@ -124,6 +275,26 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
     };
 
     const endCall = async () => {
+        if (endedRef.current) return; // Prevent double-ending
+        endedRef.current = true;
+
+        // Stop all camera/mic tracks immediately
+        if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach(track => track.stop());
+            localStreamRef.current = null;
+        }
+
+        // Immediately update local state for instant UI feedback
+        setCallEnded(true);
+        setEndedBy('SELF');
+        setConnected(false);
+
+        if (durationRef.current) {
+            clearInterval(durationRef.current);
+            durationRef.current = null;
+        }
+
+        // Send END signal to server so the other party detects it
         try {
             await fetch('/api/video/signal', {
                 method: 'POST',
@@ -132,16 +303,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
             });
         } catch (e) { }
 
-        if (durationRef.current) {
-            clearInterval(durationRef.current);
-        }
-
-        // Navigate back based on role
-        if (session?.user?.role === 'DOCTOR') {
-            router.push(`/doctor/consultation/${appointmentId}`);
-        } else {
-            router.push('/patient');
-        }
+        // Redirect is handled by the countdown effect
     };
 
     const simulateReconnect = () => {
@@ -173,6 +335,74 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         connectionQuality === 'good' ? 'text-yellow-400' : 'text-red-400';
     const qualityBars = connectionQuality === 'excellent' ? 3 :
         connectionQuality === 'good' ? 2 : 1;
+
+    // === Call Ended Overlay ===
+    if (callEnded) {
+        const endMessage = endedBy === 'SELF'
+            ? 'You ended the call'
+            : endedBy === 'DOCTOR'
+                ? 'The doctor has ended the session'
+                : endedBy === 'PATIENT'
+                    ? 'The patient has left the call'
+                    : 'Call has ended';
+
+        return (
+            <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
+                <div className="text-center animate-in fade-in zoom-in-95 duration-500 max-w-md mx-4">
+                    {/* Animated End Icon */}
+                    <div className="relative mx-auto w-24 h-24 mb-8">
+                        <div className="absolute inset-0 bg-red-500/20 rounded-full animate-ping" style={{ animationDuration: '2s' }} />
+                        <div className="relative w-24 h-24 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-500/30">
+                            <PhoneOff size={36} className="text-white" />
+                        </div>
+                    </div>
+
+                    <h2 className="text-2xl font-bold mb-2">Call Ended</h2>
+                    <p className="text-neutral-400 mb-2">{endMessage}</p>
+
+                    {/* Call Summary */}
+                    <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 mb-6 mt-6">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="text-left">
+                                <p className="text-neutral-500 text-xs uppercase tracking-wider mb-1">Duration</p>
+                                <p className="text-white font-bold font-mono text-lg">{formatDuration(callDuration)}</p>
+                            </div>
+                            <div className="text-left">
+                                <p className="text-neutral-500 text-xs uppercase tracking-wider mb-1">{isDoctor ? 'Patient' : 'Doctor'}</p>
+                                <p className="text-white font-bold">{remoteName}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p className="text-neutral-500 text-sm mb-4">
+                        Redirecting to your dashboard in <span className="text-teal-400 font-bold">{redirectCountdown}</span>s...
+                    </p>
+
+                    {/* Progress bar */}
+                    <div className="w-full bg-neutral-800 rounded-full h-1 overflow-hidden">
+                        <div
+                            className="h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full transition-all duration-1000 ease-linear"
+                            style={{ width: `${((4 - redirectCountdown) / 4) * 100}%` }}
+                        />
+                    </div>
+
+                    {/* Manual redirect button */}
+                    <button
+                        onClick={() => {
+                            if (session?.user?.role === 'DOCTOR') {
+                                router.push(`/doctor/consultation/${appointmentId}`);
+                            } else {
+                                router.push('/patient');
+                            }
+                        }}
+                        className="mt-6 px-8 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-medium transition-all border border-neutral-700 hover:border-neutral-600"
+                    >
+                        Go to Dashboard Now
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-neutral-950 text-white flex flex-col relative overflow-hidden select-none">
@@ -217,6 +447,14 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                     </div>
                 </div>
             </div>
+
+            {/* Camera Permission Error Banner */}
+            {cameraError && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-amber-950/90 backdrop-blur-md border border-amber-700/50 rounded-xl px-5 py-3 flex items-center gap-3 max-w-md animate-in slide-in-from-top duration-300 shadow-xl">
+                    <AlertCircle size={18} className="text-amber-400 flex-shrink-0" />
+                    <p className="text-amber-200 text-sm">{cameraError}</p>
+                </div>
+            )}
 
             {/* Main Video Area (Remote User) */}
             <div className="w-full h-screen absolute inset-0 flex items-center justify-center">
@@ -299,11 +537,24 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                             <span className="text-xs text-neutral-500">Camera off</span>
                         </div>
                     </div>
+                ) : hasCamera ? (
+                    <video
+                        ref={localVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover scale-x-[-1]"
+                    />
+                ) : cameraError ? (
+                    <div className="w-full h-full flex items-center justify-center bg-neutral-800">
+                        <div className="flex flex-col items-center gap-2">
+                            <AlertCircle size={20} className="text-amber-500" />
+                            <span className="text-[9px] text-amber-400 text-center px-2 leading-tight">No camera</span>
+                        </div>
+                    </div>
                 ) : (
                     <div className="w-full h-full bg-gradient-to-br from-neutral-700 to-neutral-800 flex items-center justify-center">
-                        <div className="w-10 h-10 rounded-full bg-neutral-600 flex items-center justify-center text-neutral-300 text-sm font-bold">
-                            {session?.user?.name?.[0] || 'Y'}
-                        </div>
+                        <div className="w-8 h-8 rounded-full border-2 border-t-teal-500 border-neutral-700 animate-spin" />
                     </div>
                 )}
 

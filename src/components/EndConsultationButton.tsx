@@ -13,6 +13,13 @@ export default function EndConsultationButton({ appointmentId }: { appointmentId
         if (!confirm('Are you sure you want to end this session and mark it as completed?')) return;
         setLoading(true);
         try {
+            // Send END signal to terminate any active video call for this appointment
+            await fetch('/api/video/signal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appointmentId, action: 'END' })
+            }).catch(() => { }); // Non-blocking; okay if no active call
+
             const res = await completeAppointment(appointmentId);
             if (res.error) {
                 alert(res.error);

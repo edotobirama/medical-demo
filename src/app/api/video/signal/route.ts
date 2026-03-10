@@ -3,27 +3,34 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 
 // In-memory call signaling store (in production, use Redis or a DB table)
-// Maps appointmentId -> { status, initiatedAt, doctorName }
+// Maps appointmentId -> signal data
 const callSignals = new Map<string, {
     status: 'RINGING' | 'CONNECTED' | 'ENDED' | 'MISSED';
     initiatedAt: number;
+    endedAt: number | null;
+    endedBy: 'DOCTOR' | 'PATIENT' | null;
     doctorName: string;
+    doctorUserId: string;
     patientId: string;
     appointmentId: string;
 }>();
 
-// Clean up stale signals (older than 2 minutes)
+// Clean up stale signals (older than 2 minutes for RINGING, 5 minutes total)
 function cleanupStaleSignals() {
     const now = Date.now();
     for (const [key, signal] of callSignals.entries()) {
-        if (now - signal.initiatedAt > 120000) {
-            if (signal.status === 'RINGING') {
-                callSignals.set(key, { ...signal, status: 'MISSED' });
-            }
-            // Remove signals older than 5 minutes
-            if (now - signal.initiatedAt > 300000) {
-                callSignals.delete(key);
-            }
+        // Auto-expire RINGING after 2 minutes
+        if (signal.status === 'RINGING' && now - signal.initiatedAt > 120000) {
+            callSignals.set(key, { ...signal, status: 'MISSED' });
+        }
+        // Keep ENDED signals for 30 seconds so the other party can poll and detect it
+        if (signal.status === 'ENDED' && signal.endedAt && now - signal.endedAt > 30000) {
+            callSignals.delete(key);
+            continue;
+        }
+        // Remove very old signals (5+ minutes)
+        if (now - signal.initiatedAt > 300000 && signal.status !== 'ENDED') {
+            callSignals.delete(key);
         }
     }
 }
@@ -67,7 +74,10 @@ export async function POST(req: Request) {
                 callSignals.set(appointmentId, {
                     status: 'RINGING',
                     initiatedAt: Date.now(),
+                    endedAt: null,
+                    endedBy: null,
                     doctorName: appointment.doctor.user.name || 'Doctor',
+                    doctorUserId: appointment.doctor.user.id,
                     patientId: appointment.patient.userId,
                     appointmentId
                 });
@@ -97,12 +107,37 @@ export async function POST(req: Request) {
             }
 
             case 'END': {
-                // Either party ends the call
+                // Either party ends the call — set ENDED with endedBy info
                 const signal = callSignals.get(appointmentId);
+                const endedBy = session.user.role === 'DOCTOR' ? 'DOCTOR' : 'PATIENT';
+
                 if (signal) {
-                    callSignals.set(appointmentId, { ...signal, status: 'ENDED' });
+                    callSignals.set(appointmentId, {
+                        ...signal,
+                        status: 'ENDED',
+                        endedAt: Date.now(),
+                        endedBy: endedBy as 'DOCTOR' | 'PATIENT'
+                    });
+                } else {
+                    // Create an ENDED signal even if no prior signal existed
+                    // (handles case where doctor ends from consultation page)
+                    callSignals.set(appointmentId, {
+                        status: 'ENDED',
+                        initiatedAt: Date.now(),
+                        endedAt: Date.now(),
+                        endedBy: endedBy as 'DOCTOR' | 'PATIENT',
+                        doctorName: appointment.doctor.user.name || 'Doctor',
+                        doctorUserId: appointment.doctor.user.id,
+                        patientId: appointment.patient.userId,
+                        appointmentId
+                    });
                 }
-                return NextResponse.json({ success: true, status: 'ENDED' });
+
+                return NextResponse.json({
+                    success: true,
+                    status: 'ENDED',
+                    endedBy
+                });
             }
 
             case 'DISMISS': {
@@ -123,7 +158,7 @@ export async function POST(req: Request) {
     }
 }
 
-// GET: Check for incoming calls (polled by patient) or call status (polled by doctor)
+// GET: Check for incoming calls (polled by patient) or call status (polled by either party in video room)
 export async function GET(req: Request) {
     try {
         const session = await auth();
@@ -136,12 +171,19 @@ export async function GET(req: Request) {
         const url = new URL(req.url);
         const appointmentId = url.searchParams.get('appointmentId');
 
-        // If checking a specific appointment's call status
+        // If checking a specific appointment's call status (used by video page for both parties)
         if (appointmentId) {
             const signal = callSignals.get(appointmentId);
             return NextResponse.json({
                 hasActiveCall: !!signal && (signal.status === 'RINGING' || signal.status === 'CONNECTED'),
-                signal: signal || null
+                callEnded: !!signal && signal.status === 'ENDED',
+                endedBy: signal?.endedBy || null,
+                signal: signal ? {
+                    status: signal.status,
+                    endedBy: signal.endedBy,
+                    endedAt: signal.endedAt,
+                    doctorName: signal.doctorName
+                } : null
             });
         }
 
