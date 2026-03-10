@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { User, Calendar, Clock, Activity, FileText, ArrowLeft, Video, ShieldAlert } from 'lucide-react';
 import EndConsultationButton from '@/components/EndConsultationButton';
+import CallPatientButton from '@/components/CallPatientButton';
 
 export const revalidate = 0;
 
@@ -131,9 +132,12 @@ async function ConsultationFetcher({ id }: { id: string }) {
                                 </p>
 
                                 {appointment.type === 'ONLINE' && (
-                                    <a href={`/video/${appointment.id}`} className="mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-500/20 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-transform hover:scale-[1.02]">
-                                        <Video size={18} /> Join Video Room
-                                    </a>
+                                    <div className="mt-4 space-y-2">
+                                        <CallPatientButton appointmentId={appointment.id} />
+                                        <a href={`/video/${appointment.id}`} target="_blank" className="w-full bg-neutral-700 hover:bg-neutral-600 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-transform hover:scale-[1.02]">
+                                            <Video size={18} /> Rejoin Video Room
+                                        </a>
+                                    </div>
                                 )}
                             </div>
                         </div>

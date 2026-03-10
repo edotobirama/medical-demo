@@ -11,12 +11,14 @@ export default function DoctorBookingWidget({
     doctorId,
     userId,
     openingTime = "09:00",
-    closingTime = "17:00"
+    closingTime = "17:00",
+    initialBookingType = "in-person"
 }: {
     doctorId: string,
     userId?: string,
     openingTime?: string,
-    closingTime?: string
+    closingTime?: string,
+    initialBookingType?: string
 }) {
     const router = useRouter();
     const [booking, setBooking] = useState(false);
@@ -37,7 +39,7 @@ export default function DoctorBookingWidget({
     // allow selection for today or tomorrow
     const [bookingDate, setBookingDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
     const [issue, setIssue] = useState("");
-    const [bookingType, setBookingType] = useState("in-person");
+    const [bookingType, setBookingType] = useState(initialBookingType);
 
     const [simulation, setSimulation] = useState<any>(null);
     const [simulating, setSimulating] = useState(false);
@@ -265,8 +267,8 @@ export default function DoctorBookingWidget({
                                                         {format(new Date(b.requestedTime), 'h:mm a')}
                                                     </span>
                                                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${b.status === 'IN_PROGRESS' ? 'bg-emerald-100 text-emerald-700' :
-                                                            b.status === 'BOOKED' ? 'bg-sky-100 text-sky-700' :
-                                                                'bg-gray-100 text-gray-600'
+                                                        b.status === 'BOOKED' ? 'bg-sky-100 text-sky-700' :
+                                                            'bg-gray-100 text-gray-600'
                                                         }`}>
                                                         {b.status === 'IN_PROGRESS' ? 'Live' : b.status}
                                                     </span>

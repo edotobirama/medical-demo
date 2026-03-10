@@ -24,7 +24,7 @@ export default async function DoctorDashboard() {
                 include: {
                     appointments: {
                         include: { patient: { include: { user: true } }, slot: true },
-                        orderBy: { slot: { startTime: 'asc' } }
+                        orderBy: { requestedTime: 'asc' }
                     }
                 }
             }
@@ -73,13 +73,18 @@ export default async function DoctorDashboard() {
                             {apt.type === 'ONLINE' ? <Video size={14} className="text-purple-500" /> : <MapPin size={14} className="text-blue-500" />}
                             {apt.type === 'ONLINE' ? 'Digital Consult' : 'In-Person Visit'}
                         </span>
+                        {apt.type === 'ONLINE' && apt.meetingLink && (
+                            <a href={apt.meetingLink} target="_blank" className="text-xs text-purple-600 hover:text-purple-800 underline font-semibold flex items-center gap-1">
+                                <Video size={12} /> Join Video Call
+                            </a>
+                        )}
                     </div>
                 </div>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
                 <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${apt.status === "COMPLETED" ? "bg-green-50 text-green-700 border-green-200" :
-                        apt.status === "PENDING" ? "bg-orange-50 text-orange-700 border-orange-200" :
-                            "bg-blue-50 text-blue-700 border-blue-200"
+                    apt.status === "PENDING" ? "bg-orange-50 text-orange-700 border-orange-200" :
+                        "bg-blue-50 text-blue-700 border-blue-200"
                     }`}>
                     {apt.status}
                 </span>

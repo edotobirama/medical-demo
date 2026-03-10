@@ -85,8 +85,9 @@ export async function POST(req: Request) {
             }
 
             const partialFee = doc.consultationFee * 0.2; // 20% upfront
+            const appointmentType = type === 'digital' ? 'ONLINE' : 'OFFLINE';
 
-            return await tx.appointment.create({
+            const newAppointment = await tx.appointment.create({
                 data: {
                     patientId: patient.patientProfile!.id,
                     doctorId,
@@ -94,12 +95,22 @@ export async function POST(req: Request) {
                     requestedTime: reqTime,
                     estimatedDuration,
                     status: 'BOOKED',
-                    type: type === 'digital' ? 'ONLINE' : 'OFFLINE',
+                    type: appointmentType,
                     issueDescription,
                     amountPaid: partialFee,
                     totalCost: doc.consultationFee
                 }
             });
+
+            // Generate meeting link for online consultations
+            if (appointmentType === 'ONLINE') {
+                return await tx.appointment.update({
+                    where: { id: newAppointment.id },
+                    data: { meetingLink: `/video/${newAppointment.id}` }
+                });
+            }
+
+            return newAppointment;
         });
 
         return NextResponse.json({

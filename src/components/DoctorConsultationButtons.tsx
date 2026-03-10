@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { cancelAppointment, requestRescheduleAppointment, startConsultation } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
-import { Play, XCircle, CalendarClock, Loader2 } from 'lucide-react';
+import { Play, XCircle, CalendarClock, Loader2, Phone, Video } from 'lucide-react';
 
 export default function DoctorConsultationButtons({ appointmentId, status, type }: { appointmentId: string, status: string, type: string }) {
     const [loading, setLoading] = useState<string | null>(null);
@@ -18,12 +18,65 @@ export default function DoctorConsultationButtons({ appointmentId, status, type 
                 setLoading(null);
             } else {
                 if (type === 'ONLINE') {
-                    window.open(`/video/${appointmentId}`, '_blank');
+                    // Initiate call signaling so patient gets notification
+                    await initiateVideoCall();
+                } else {
+                    router.push(`/doctor/consultation/${appointmentId}`);
                 }
-                router.push(`/doctor/consultation/${appointmentId}`);
             }
         } catch (e) {
             alert('An error occurred.');
+            setLoading(null);
+        }
+    };
+
+    const initiateVideoCall = async () => {
+        try {
+            const res = await fetch('/api/video/signal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    appointmentId,
+                    action: 'INITIATE'
+                })
+            });
+
+            if (res.ok) {
+                // Open video call page for the doctor
+                window.open(`/video/${appointmentId}`, '_blank');
+                router.push(`/doctor/consultation/${appointmentId}`);
+            } else {
+                const data = await res.json();
+                alert(`Failed to initiate call: ${data.error || 'Unknown error'}`);
+            }
+        } catch (e) {
+            alert('Failed to initiate video call.');
+        } finally {
+            setLoading(null);
+        }
+    };
+
+    const handleCallPatient = async () => {
+        setLoading('call');
+        try {
+            const res = await fetch('/api/video/signal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    appointmentId,
+                    action: 'INITIATE'
+                })
+            });
+
+            if (res.ok) {
+                window.open(`/video/${appointmentId}`, '_blank');
+            } else {
+                const data = await res.json();
+                alert(`Failed to call: ${data.error || 'Unknown error'}`);
+            }
+        } catch (e) {
+            alert('Failed to initiate video call.');
+        } finally {
             setLoading(null);
         }
     };
@@ -62,29 +115,66 @@ export default function DoctorConsultationButtons({ appointmentId, status, type 
 
     return (
         <div className="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
+            {/* Start / Call Patient for new appointments */}
             {status !== 'IN_PROGRESS' && (
-                <button
-                    onClick={handleStart}
-                    disabled={!!loading}
-                    className="btn btn-primary bg-emerald-600 hover:bg-emerald-700 border-none shadow-md shadow-emerald-500/20 py-2 px-4 text-sm flex items-center gap-2"
-                >
-                    {loading === 'start' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play size={16} />}
-                    Start
-                </button>
+                <>
+                    {type === 'ONLINE' ? (
+                        <button
+                            onClick={handleStart}
+                            disabled={!!loading}
+                            className="btn btn-primary bg-purple-600 hover:bg-purple-700 border-none shadow-md shadow-purple-500/20 py-2 px-4 text-sm flex items-center gap-2"
+                        >
+                            {loading === 'start' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Phone size={16} />}
+                            Call Patient
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleStart}
+                            disabled={!!loading}
+                            className="btn btn-primary bg-emerald-600 hover:bg-emerald-700 border-none shadow-md shadow-emerald-500/20 py-2 px-4 text-sm flex items-center gap-2"
+                        >
+                            {loading === 'start' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play size={16} />}
+                            Start
+                        </button>
+                    )}
+                </>
             )}
 
+            {/* Resume / Rejoin for in-progress appointments */}
             {status === 'IN_PROGRESS' && (
-                <button
-                    onClick={() => {
-                        if (type === 'ONLINE') {
-                            window.open(`/video/${appointmentId}`, '_blank');
-                        }
-                        router.push(`/doctor/consultation/${appointmentId}`);
-                    }}
-                    className="btn btn-primary bg-emerald-600 hover:bg-emerald-700 border-none shadow-md shadow-emerald-500/20 py-2 px-4 text-sm flex items-center gap-2"
-                >
-                    <Play size={16} /> Resume
-                </button>
+                <>
+                    {type === 'ONLINE' ? (
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleCallPatient}
+                                disabled={!!loading}
+                                className="btn btn-primary bg-purple-600 hover:bg-purple-700 border-none shadow-md shadow-purple-500/20 py-2 px-4 text-sm flex items-center gap-2 animate-pulse"
+                                style={{ animationDuration: '2s' }}
+                            >
+                                {loading === 'call' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Phone size={16} />}
+                                Call Patient
+                            </button>
+                            <button
+                                onClick={() => {
+                                    window.open(`/video/${appointmentId}`, '_blank');
+                                    router.push(`/doctor/consultation/${appointmentId}`);
+                                }}
+                                className="btn btn-primary bg-emerald-600 hover:bg-emerald-700 border-none shadow-md shadow-emerald-500/20 py-2 px-4 text-sm flex items-center gap-2"
+                            >
+                                <Video size={16} /> Resume
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => {
+                                router.push(`/doctor/consultation/${appointmentId}`);
+                            }}
+                            className="btn btn-primary bg-emerald-600 hover:bg-emerald-700 border-none shadow-md shadow-emerald-500/20 py-2 px-4 text-sm flex items-center gap-2"
+                        >
+                            <Play size={16} /> Resume
+                        </button>
+                    )}
+                </>
             )}
 
             <button

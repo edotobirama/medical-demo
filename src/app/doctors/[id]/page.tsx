@@ -12,8 +12,9 @@ export const revalidate = 0; // Ensure fresh data
 import DoctorBookingWidget from '@/components/DoctorBookingWidget';
 import LiveSchedule from './LiveSchedule';
 
-export default async function DoctorProfilePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DoctorProfilePage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ type?: string }> }) {
     const { id } = await params;
+    const { type: consultationType } = await searchParams;
     const session = await auth();
 
     const doc = await prisma.doctorProfile.findFirst({
@@ -129,6 +130,7 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                             userId={session?.user?.id}
                             openingTime={doc.openingTime}
                             closingTime={doc.closingTime}
+                            initialBookingType={consultationType === 'digital' ? 'digital' : 'in-person'}
                         />
                     ) : (
                         <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm text-center">

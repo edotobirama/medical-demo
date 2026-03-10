@@ -5,6 +5,7 @@ import ChatWidget from "@/components/ChatWidget";
 import Providers from "@/components/Providers";
 import ThemeWrapper from "@/components/ThemeWrapper";
 import MessageNotifier from "@/components/MessageNotifier";
+import VideoCallNotifier from "@/components/VideoCallNotifier";
 import "./globals.css";
 
 // Define fonts
@@ -37,6 +38,7 @@ export default function RootLayout({
                   but strictly sticking to previous structure + wrapper */}
               <ChatWidget />
               <MessageNotifier />
+              <VideoCallNotifier />
               <Footer />
             </div>
           </Providers>

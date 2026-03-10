@@ -28,7 +28,8 @@ export default function BookPage() {
 
     const handleDoctorSelect = (doctorId: string) => {
         // We navigate to the doctor's page where the advanced Live Waitlist booking widget lives
-        router.push(`/doctors/${doctorId}`);
+        // Pass the selected consultation type so the booking widget can pre-select it
+        router.push(`/doctors/${doctorId}?type=${type}`);
     };
 
     return (

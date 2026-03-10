@@ -312,12 +312,19 @@ export async function startConsultation(appointmentId: string) {
         if (!apt) return { error: 'Not found' };
         if (apt.doctor.user.id !== session.user.id) return { error: 'Unauthorized' };
 
+        const updateData: any = {
+            status: 'IN_PROGRESS',
+            actualStartTime: new Date()
+        };
+
+        // Generate meeting link for online consultations
+        if (apt.type === 'ONLINE') {
+            updateData.meetingLink = `/video/${appointmentId}`;
+        }
+
         await prisma.appointment.update({
             where: { id: appointmentId },
-            data: {
-                status: 'IN_PROGRESS',
-                actualStartTime: new Date()
-            }
+            data: updateData
         });
 
         return { success: true };
