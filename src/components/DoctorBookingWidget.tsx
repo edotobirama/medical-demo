@@ -403,10 +403,10 @@ export default function DoctorBookingWidget({
                             <p className="text-muted-foreground mb-6 text-sm">
                                 Click OK to confirm your partial payment and secure booking #{simulation?.bookingNumber}.
                             </p>
-                            <div className="flex gap-4 w-full">
+                            <div className="flex gap-4 w-full mt-2">
                                 <button
                                     onClick={() => setShowPayment(false)}
-                                    className="w-full py-3 border border-border bg-background hover:bg-muted text-foreground rounded-xl font-bold transition"
+                                    className="flex-1 py-4 border border-border bg-background hover:bg-muted text-foreground rounded-xl font-bold transition flex items-center justify-center"
                                     disabled={booking}
                                 >
                                     Cancel
@@ -414,7 +414,7 @@ export default function DoctorBookingWidget({
                                 <button
                                     onClick={handleBooking}
                                     disabled={simulating || booking || !simulation || simError !== null}
-                                    className="w-full mt-6 py-4 bg-primary hover:bg-primary/90 text-primary-foreground focus:ring-4 focus:ring-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] disabled:opacity-50"
+                                    className="flex-1 py-4 bg-primary hover:bg-primary/90 text-primary-foreground focus:ring-4 focus:ring-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] disabled:opacity-50"
                                 >
                                     {booking ? (<Loader2 className="animate-spin" size={18} />) : "OK"}
                                 </button>

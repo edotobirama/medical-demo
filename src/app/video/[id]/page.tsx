@@ -260,6 +260,11 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                         durationRef.current = null;
                     }
                 }
+
+                // Sync messages if there are new ones
+                if (data.messages && data.messages.length > chatMessages.length) {
+                    setChatMessages(data.messages);
+                }
             } catch (e) {
                 // Silent fail
             }
@@ -359,14 +364,30 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         }, 3000);
     };
 
-    const sendChatMessage = () => {
+    const sendChatMessage = async () => {
         if (!chatInput.trim()) return;
+
+        const text = chatInput.trim();
+        const from = session?.user?.role === 'DOCTOR' ? 'Doctor' : 'You';
+
+        // Optimistic UI update
         setChatMessages(prev => [...prev, {
-            from: session?.user?.role === 'DOCTOR' ? 'Doctor' : 'You',
-            text: chatInput.trim(),
+            from,
+            text,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }]);
         setChatInput("");
+
+        // Send to signaling server for the other party
+        try {
+            await fetch('/api/video/signal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appointmentId, action: 'SEND_MESSAGE', text })
+            });
+        } catch (e) {
+            console.error('Failed to send message:', e);
+        }
     };
 
     const isDoctor = session?.user?.role === 'DOCTOR';
@@ -626,7 +647,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                     style={{ top: pipExpanded ? '15rem' : '11rem' }}
                 >
                     <div className="flex items-center justify-between p-4 border-b border-neutral-800">
-                        <h4 className="font-bold text-sm">In-call Messages</h4>
+                        <h4 className="font-bold text-sm text-white">In-call Messages</h4>
                         <button onClick={() => setShowChat(false)} className="text-neutral-500 hover:text-white transition">
                             <Minimize2 size={16} />
                         </button>
@@ -634,19 +655,22 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[40vh]">
                         {chatMessages.length === 0 ? (
                             <p className="text-sm text-neutral-500 text-center py-8">No messages yet</p>
-                        ) : chatMessages.map((msg, i) => (
-                            <div key={i} className={clsx("text-sm", msg.from === 'You' || msg.from === 'Doctor' ? "text-right" : "")}>
-                                <div className={clsx(
-                                    "inline-block px-3 py-2 rounded-xl max-w-[80%]",
-                                    msg.from === 'You' || (isDoctor && msg.from === 'Doctor')
-                                        ? "bg-teal-600 text-white"
-                                        : "bg-neutral-800 text-neutral-200"
-                                )}>
-                                    <p>{msg.text}</p>
+                        ) : chatMessages.map((msg, i) => {
+                            const isMe = (isDoctor && msg.from === 'Doctor') || (!isDoctor && msg.from === 'Patient') || msg.from === 'You';
+                            return (
+                                <div key={i} className={clsx("text-sm", isMe ? "text-right" : "text-left")}>
+                                    <div className={clsx(
+                                        "inline-block px-3 py-2 rounded-xl max-w-[80%]",
+                                        isMe
+                                            ? "bg-teal-600 text-white"
+                                            : "bg-neutral-800 text-neutral-200"
+                                    )}>
+                                        <p>{msg.text}</p>
+                                    </div>
+                                    <p className="text-[10px] text-neutral-600 mt-1">{msg.time}</p>
                                 </div>
-                                <p className="text-[10px] text-neutral-600 mt-1">{msg.time}</p>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                     <div className="p-3 border-t border-neutral-800 flex gap-2">
                         <input

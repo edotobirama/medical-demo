@@ -14,6 +14,7 @@ const callSignals = new Map<string, {
     doctorUserId: string;
     patientId: string;
     appointmentId: string;
+    messages: { from: string; text: string; time: string; timestamp: number }[];
 }>();
 
 // Clean up stale signals (older than 2 minutes for RINGING, or no heartbeat for 20s)
@@ -95,7 +96,8 @@ export async function POST(req: Request) {
                     doctorName: appointment.doctor.user.name || 'Doctor',
                     doctorUserId: appointment.doctor.user.id,
                     patientId: appointment.patient.userId,
-                    appointmentId
+                    appointmentId,
+                    messages: []
                 });
 
                 // Update appointment status if not already in progress
@@ -131,6 +133,22 @@ export async function POST(req: Request) {
                 return NextResponse.json({ success: true });
             }
 
+            case 'SEND_MESSAGE': {
+                const signal = callSignals.get(appointmentId);
+                const { text } = body;
+                if (signal && text) {
+                    const newMessage = {
+                        from: session.user.role === 'DOCTOR' ? 'Doctor' : 'Patient',
+                        text,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        timestamp: Date.now()
+                    };
+                    signal.messages.push(newMessage);
+                    callSignals.set(appointmentId, { ...signal, lastHeartbeat: Date.now() });
+                }
+                return NextResponse.json({ success: true });
+            }
+
             case 'END': {
                 // Either party ends the call — set ENDED with endedBy info
                 const signal = callSignals.get(appointmentId);
@@ -155,7 +173,8 @@ export async function POST(req: Request) {
                         doctorName: appointment.doctor.user.name || 'Doctor',
                         doctorUserId: appointment.doctor.user.id,
                         patientId: appointment.patient.userId,
-                        appointmentId
+                        appointmentId,
+                        messages: []
                     });
                 }
 
@@ -214,6 +233,7 @@ export async function GET(req: Request) {
                 hasActiveCall: !!signal && (signal.status === 'RINGING' || signal.status === 'CONNECTED'),
                 callEnded: !!signal && signal.status === 'ENDED',
                 endedBy: signal?.endedBy || null,
+                messages: signal?.messages || [],
                 signal: signal ? {
                     status: signal.status,
                     endedBy: signal.endedBy,
