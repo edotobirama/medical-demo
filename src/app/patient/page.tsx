@@ -80,6 +80,20 @@ export default async function PatientDashboard() {
         orderBy: { updatedAt: 'desc' }
     });
 
+    // Fetch past/completed appointments
+    const pastAppointments = await prisma.appointment.findMany({
+        where: {
+            patientId: patientProfile.id,
+            status: 'COMPLETED'
+        },
+        include: {
+            doctor: { include: { user: true } },
+            slot: true
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 5
+    });
+
     return (
         <div className="bg-background min-h-screen pb-20">
             {/* Header / Hero */}
@@ -257,6 +271,48 @@ export default async function PatientDashboard() {
                             </div>
                         )}
                     </div>
+
+                    {/* Past Appointments Section */}
+                    {pastAppointments.length > 0 && (
+                        <div className="mt-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                                    <Clock size={20} className="text-muted-foreground" /> Past Appointments
+                                </h3>
+                            </div>
+                            <div className="space-y-4">
+                                {pastAppointments.map((app: any) => (
+                                    <div key={app.id} className="bg-card rounded-xl p-5 border border-border shadow-sm flex flex-col sm:flex-row items-center gap-5 opacity-80">
+                                        <div className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 bg-muted text-muted-foreground">
+                                            {app.type === 'ONLINE' ? <Video size={24} /> : <MapPin size={24} />}
+                                        </div>
+                                        <div className="flex-1 text-center sm:text-left">
+                                            <h4 className="font-bold text-card-foreground">
+                                                {app.doctor.user?.name || "Dr. Specialist"}
+                                            </h4>
+                                            <p className="text-sm text-muted-foreground">{app.doctor.specialization}</p>
+                                            <div className="flex items-center justify-center sm:justify-start gap-3 mt-2 text-xs font-medium text-muted-foreground">
+                                                <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
+                                                    <Calendar size={12} /> {app.requestedTime ? format(new Date(app.requestedTime), 'MMM d, yyyy') : 'No Date'}
+                                                </span>
+                                                <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
+                                                    <Clock size={12} /> {app.requestedTime ? format(new Date(app.requestedTime), 'h:mm a') : 'No Time'}
+                                                </span>
+                                                <span className="bg-emerald-500/10 text-emerald-600 font-bold px-2 py-1 rounded border border-emerald-500/20">
+                                                    Completed
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                                            <Link href={`/inbox/${app.doctor.userId}`} className="flex-1 sm:flex-none btn px-4 py-2 text-xs text-center border-border hover:bg-muted font-semibold w-full sm:w-auto shadow-sm">
+                                                Message Doctor
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Medical Records Section */}
                     <div>
