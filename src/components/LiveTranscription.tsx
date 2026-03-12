@@ -91,16 +91,60 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         return () => clearInterval(interval);
     }, [appointmentId]);
 
-    // Start/stop speech recognition
-    const toggleListening = useCallback(() => {
-        if (isListening) {
-            stopListening();
-        } else {
-            startListening();
-        }
-    }, [isListening, selectedLang]);
+    // (Manual toggle function removed as requested)
 
-    const startListening = () => {
+    const stopListening = useCallback(() => {
+        if (recognitionRef.current) {
+            recognitionRef.current.onend = null; // Prevent auto-restart
+            try {
+                recognitionRef.current.stop();
+            } catch (e) { }
+            recognitionRef.current = null;
+        }
+        setIsListening(false);
+        setInterimText('');
+    }, []);
+
+    const saveTranscript = useCallback(async (text: string, language: string) => {
+        setSaving(true);
+        try {
+            const res = await fetch('/api/transcription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    appointmentId,
+                    text,
+                    language,
+                    speakerRole: isDoctor ? 'DOCTOR' : 'PATIENT'
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.transcript?.englishText) {
+                    setTranscripts(prev => {
+                        const updated = [...prev];
+                        const last = updated[updated.length - 1];
+                        if (last && last.text === text) {
+                            last.translatedText = data.transcript.englishText;
+                            last.id = data.transcript.id;
+                        }
+                        return updated;
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Failed to save transcript:', e);
+        } finally {
+            setSaving(false);
+        }
+    }, [appointmentId, isDoctor]);
+
+    const startListening = useCallback(() => {
+        if (recognitionRef.current) {
+            stopListening(); // Ensure cleanly stopped before starting a new one
+        }
+
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
         if (!SpeechRecognition) {
@@ -176,17 +220,16 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         } catch (e) {
             console.error('Failed to start recognition:', e);
         }
-    };
+    }, [selectedLang, isDoctor, stopListening, saveTranscript]);
 
-    const stopListening = () => {
-        if (recognitionRef.current) {
-            recognitionRef.current.onend = null; // Prevent auto-restart
-            recognitionRef.current.stop();
-            recognitionRef.current = null;
+    // Auto-start and auto-restart transcription when call is connected
+    useEffect(() => {
+        if (isConnected) {
+            startListening();
+        } else {
+            stopListening();
         }
-        setIsListening(false);
-        setInterimText('');
-    };
+    }, [isConnected, selectedLang, startListening, stopListening]);
 
     // Clean up on unmount
     useEffect(() => {
@@ -199,41 +242,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         };
     }, []);
 
-    const saveTranscript = async (text: string, language: string) => {
-        setSaving(true);
-        try {
-            const res = await fetch('/api/transcription', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    appointmentId,
-                    text,
-                    language,
-                    speakerRole: isDoctor ? 'DOCTOR' : 'PATIENT'
-                })
-            });
 
-            if (res.ok) {
-                const data = await res.json();
-                if (data.transcript?.englishText) {
-                    // Update the last transcript with the translation
-                    setTranscripts(prev => {
-                        const updated = [...prev];
-                        const last = updated[updated.length - 1];
-                        if (last && last.text === text) {
-                            last.translatedText = data.transcript.englishText;
-                            last.id = data.transcript.id;
-                        }
-                        return updated;
-                    });
-                }
-            }
-        } catch (e) {
-            console.error('Failed to save transcript:', e);
-        } finally {
-            setSaving(false);
-        }
-    };
 
     const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === selectedLang) || SUPPORTED_LANGUAGES[0];
 
@@ -272,20 +281,6 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
                                 <ChevronDown size={10} />
                             </button>
 
-                            {/* Toggle Listening */}
-                            <button
-                                onClick={toggleListening}
-                                disabled={!isConnected}
-                                className={clsx(
-                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition",
-                                    isListening
-                                        ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30"
-                                        : "bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30"
-                                )}
-                            >
-                                {isListening ? <MicOff size={12} /> : <Mic size={12} />}
-                                {isListening ? 'Stop' : 'Start'}
-                            </button>
                         </div>
 
                         {/* Language Picker Dropdown */}
@@ -313,7 +308,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
                                 <div className="text-center py-6">
                                     <Sparkles className="w-6 h-6 mx-auto text-neutral-600 mb-2" />
                                     <p className="text-xs text-neutral-500">
-                                        {isListening ? 'Listening... Start speaking' : 'Click "Start" to begin transcription'}
+                                        {isListening ? 'Listening... Start speaking' : 'Waiting for conversation to begin...'}
                                     </p>
                                 </div>
                             ) : (

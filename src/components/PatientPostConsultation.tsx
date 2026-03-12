@@ -97,7 +97,7 @@ export default function PatientPostConsultation({ appointmentId, callDuration, r
                     <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
                         <CheckCircle size={32} />
                     </div>
-                    <h1 className="text-3xl font-bold mb-2">Consultation Complete</h1>
+                    <h1 className="text-3xl font-bold mb-2 text-white">Consultation Complete</h1>
                     <p className="text-neutral-400">Your documents from {remoteName} are ready.</p>
                 </div>
 

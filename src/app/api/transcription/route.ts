@@ -29,7 +29,8 @@ export async function POST(req: Request) {
                 originalText: text,
                 language: language || 'en',
                 englishText,
-                speakerRole: speakerRole || (session.user.role === 'DOCTOR' ? 'DOCTOR' : 'PATIENT'),
+                // ALWAYS use server-side session role — never trust client-sent speakerRole
+                speakerRole: (session.user as any).role === 'DOCTOR' ? 'DOCTOR' : 'PATIENT',
             }
         });
 

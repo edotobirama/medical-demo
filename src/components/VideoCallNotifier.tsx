@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Phone, PhoneOff, Video, X } from 'lucide-react';
 
@@ -15,6 +15,7 @@ interface IncomingCall {
 export default function VideoCallNotifier() {
     const { data: session } = useSession();
     const router = useRouter();
+    const pathname = usePathname();
     const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
     const [ringTime, setRingTime] = useState(0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -76,6 +77,12 @@ export default function VideoCallNotifier() {
 
                 if (data.incomingCalls && data.incomingCalls.length > 0) {
                     const call = data.incomingCalls[0]; // Handle first incoming call
+
+                    // Do not show answering popup if we are already on the call page!
+                    if (pathname === `/video/${call.appointmentId}`) {
+                        return;
+                    }
+
                     if (!incomingCall || incomingCall.appointmentId !== call.appointmentId) {
                         setIncomingCall(call);
                         setRingTime(0);
@@ -98,7 +105,15 @@ export default function VideoCallNotifier() {
             clearInterval(interval);
             stopRingtone();
         };
-    }, [session, incomingCall, playRingtone, stopRingtone]);
+    }, [session, incomingCall, playRingtone, stopRingtone, pathname]);
+
+    // Fast-react dismissal if pathname changes to the call manually
+    useEffect(() => {
+        if (incomingCall && pathname === `/video/${incomingCall.appointmentId}`) {
+            setIncomingCall(null);
+            stopRingtone();
+        }
+    }, [pathname, incomingCall, stopRingtone]);
 
     // Ring timer
     useEffect(() => {
