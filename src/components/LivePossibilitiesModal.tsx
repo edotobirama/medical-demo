@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Lightbulb, RefreshCcw, Activity, X, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Lightbulb, RefreshCcw, Activity, X, Loader2, AlertCircle, Sparkles, HelpCircle } from 'lucide-react';
 import clsx from 'clsx';
 
 interface LivePossibilitiesData {
@@ -22,6 +22,41 @@ export default function LivePossibilitiesModal({
     const [possibilities, setPossibilities] = useState<LivePossibilitiesData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [transcriptHash, setTranscriptHash] = useState('');
+    const fetchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Automated Contextual Trigger: Poll transcripts for natural pauses
+    useEffect(() => {
+        if (!isOpen || !appointmentId) return;
+
+        const checkTranscripts = async () => {
+            try {
+                const res = await fetch(`/api/transcription?appointmentId=${appointmentId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const newHash = data.transcripts.map((t: any) => t.id).join(',');
+
+                    setTranscriptHash(prev => {
+                        if (prev && prev !== newHash) {
+                            // Transcripts changed! Start a debounce timer for a natural pause
+                            if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
+                            fetchDebounceRef.current = setTimeout(() => {
+                                fetchPossibilities();
+                            }, 4000); // 4 second natural pause detection
+                        }
+                        return newHash;
+                    });
+                }
+            } catch (e) { }
+        };
+
+        checkTranscripts();
+        const interval = setInterval(checkTranscripts, 3000);
+        return () => {
+            clearInterval(interval);
+            if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
+        };
+    }, [isOpen, appointmentId]);
 
     const fetchPossibilities = async () => {
         if (!isOpen || !appointmentId) return;
@@ -79,11 +114,11 @@ export default function LivePossibilitiesModal({
                         <button
                             onClick={fetchPossibilities}
                             disabled={loading}
-                            className="p-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 rounded-lg text-neutral-300 transition flex items-center gap-2"
-                            title="Refresh insights based on latest transcript"
+                            className="px-3 py-2 bg-teal-600/20 hover:bg-teal-600/30 border border-teal-500/30 disabled:opacity-50 rounded-lg text-teal-400 transition flex items-center gap-2"
+                            title="Manually trigger AI analysis on the current transcript"
                         >
-                            <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} />
-                            <span className="text-xs font-bold sm:inline hidden">Refresh</span>
+                            <HelpCircle size={16} className={loading ? 'animate-pulse' : ''} />
+                            <span className="text-xs font-bold sm:inline hidden">{loading ? 'Analyzing...' : 'Help'}</span>
                         </button>
                         <div className="w-px h-6 bg-neutral-800" />
                         <button

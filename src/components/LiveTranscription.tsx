@@ -87,6 +87,8 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         };
 
         loadTranscripts();
+        const interval = setInterval(loadTranscripts, 3000);
+        return () => clearInterval(interval);
     }, [appointmentId]);
 
     // Start/stop speech recognition

@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import {
     Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare,
     Maximize2, Minimize2, Clock, User, Wifi, WifiOff, AlertCircle,
-    FileText, Lightbulb
+    FileText, Lightbulb, HelpCircle
 } from "lucide-react";
 import clsx from "clsx";
 import LiveTranscription from '@/components/LiveTranscription';
@@ -793,7 +793,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                         </div>
                         <div className="text-left">
                             <p className="text-sm font-bold flex items-center gap-1.5">
-                                Live Possibilities
+                                Help (AI Analysis)
                                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                             </p>
                             <p className="text-[10px] text-neutral-400 font-medium leading-tight">AI transcript analysis</p>
