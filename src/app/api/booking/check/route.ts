@@ -55,7 +55,8 @@ export async function GET(req: Request) {
                     doctorName: existingBooking.doctor.user.name,
                     requestedTime: existingBooking.requestedTime,
                     status: existingBooking.status,
-                    type: existingBooking.type
+                    type: existingBooking.type,
+                    bookingNumber: existingBooking.bookingNumber
                 }
             });
         }

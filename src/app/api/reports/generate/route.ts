@@ -23,8 +23,7 @@ export async function POST(req: Request) {
             include: {
                 patient: {
                     include: {
-                        user: true,
-                        medicalReports: { orderBy: { createdAt: 'desc' }, take: 10 }
+                        user: true
                     }
                 },
                 doctor: { include: { user: true } }
@@ -46,9 +45,7 @@ export async function POST(req: Request) {
             `[${t.speakerRole}] ${t.englishText || t.originalText}`
         ).join('\n');
 
-        const patientReportsSummary = appointment.patient.medicalReports.map((r: any) =>
-            `- ${r.title} (${r.fileType}): ${r.aiSummary || 'No summary available'}`
-        ).join('\n');
+        const masterAiSummary = (appointment.patient as any).masterAiSummary || 'No prior medical history summary available.';
 
         const contextPrompt = `
 Patient: ${appointment.patient.user.name || 'Unknown'}
@@ -63,8 +60,8 @@ History Notes: ${appointment.historyNotes || 'None'}
 Consultation Transcript:
 ${transcriptText || 'No transcript available'}
 
-Previous Medical Records:
-${patientReportsSummary || 'No prior records'}
+Previous Patient Master Summary (Do not ignore this, merge new insights with it):
+${masterAiSummary}
         `.trim();
 
         // Generate AI report

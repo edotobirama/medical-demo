@@ -18,7 +18,7 @@ export async function GET(
             where: { id },
             include: {
                 doctor: { include: { user: true } },
-                patient: { include: { user: true } }
+                patient: { include: { user: true, medicalReports: true } }
             }
         });
 
@@ -46,7 +46,8 @@ export async function GET(
             issueDescription: appointment.issueDescription,
             meetingLink: appointment.meetingLink,
             requestedTime: appointment.requestedTime,
-            bookingNumber: appointment.bookingNumber
+            bookingNumber: appointment.bookingNumber,
+            patient: appointment.patient
         });
     } catch (e: any) {
         console.error('Appointment fetch error:', e);

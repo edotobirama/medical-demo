@@ -252,12 +252,21 @@ export default function DoctorBookingWidget({
                         <div className="space-y-4">
                             {/* Stats Row */}
                             <div className="grid grid-cols-3 gap-3">
-                                <div className="bg-background rounded-lg p-3 border border-border text-center shadow-sm">
-                                    <div className="text-[10px] font-semibold text-muted-foreground mb-1 flex justify-center items-center gap-1">
-                                        <Hash className="w-3 h-3" /> Your #
+                                {alreadyBooked ? (
+                                    <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-3 border border-amber-200 text-center shadow-sm">
+                                        <div className="text-[10px] font-semibold text-amber-700 mb-1 flex justify-center items-center gap-1">
+                                            <Hash className="w-3 h-3" /> Booking #
+                                        </div>
+                                        <div className="text-xl font-black text-amber-900">#{alreadyBooked.bookingNumber || '-'}</div>
                                     </div>
-                                    <div className="text-xl font-black text-foreground">#{simulation.bookingNumber}</div>
-                                </div>
+                                ) : (
+                                    <div className="bg-background rounded-lg p-3 border border-border text-center shadow-sm">
+                                        <div className="text-[10px] font-semibold text-muted-foreground mb-1 flex justify-center items-center gap-1">
+                                            <Hash className="w-3 h-3" /> Your #
+                                        </div>
+                                        <div className="text-xl font-black text-foreground">#{simulation.bookingNumber}</div>
+                                    </div>
+                                )}
                                 <div className="bg-background rounded-lg p-3 border border-border text-center shadow-sm">
                                     <div className="text-[10px] font-semibold text-muted-foreground mb-1 flex justify-center items-center gap-1">
                                         <Users className="w-3 h-3" /> Ahead
@@ -306,35 +315,39 @@ export default function DoctorBookingWidget({
                                             </div>
                                         ))}
                                     </div>
-                                    {/* Your projected row */}
-                                    <div className="flex items-center justify-between px-3 py-2 bg-primary/5 border-t-2 border-primary/20">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-black text-primary bg-primary/20 w-6 h-6 flex items-center justify-center rounded-md text-[10px] ring-2 ring-primary/30">
-                                                #{simulation.bookingNumber}
+                                    {/* Your projected row - ONLY IF NOT BOOKED */}
+                                    {!alreadyBooked && (
+                                        <div className="flex items-center justify-between px-3 py-2 bg-primary/5 border-t-2 border-primary/20">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-black text-primary bg-primary/20 w-6 h-6 flex items-center justify-center rounded-md text-[10px] ring-2 ring-primary/30">
+                                                    #{simulation.bookingNumber}
+                                                </span>
+                                                <span className="font-bold text-primary text-xs">You (projected)</span>
+                                            </div>
+                                            <span className="text-primary font-mono text-xs font-bold">
+                                                {format(new Date(simulation.actualStartTime), 'h:mm a')}
                                             </span>
-                                            <span className="font-bold text-primary text-xs">You (projected)</span>
                                         </div>
-                                        <span className="text-primary font-mono text-xs font-bold">
-                                            {format(new Date(simulation.actualStartTime), 'h:mm a')}
-                                        </span>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 
-                            {/* Wait Time Summary */}
-                            <div className="bg-orange-50 dark:bg-orange-950/20 rounded-lg p-3 border border-orange-100 dark:border-orange-900/40">
-                                <div className="flex justify-between items-center text-sm mb-1">
-                                    <span className="font-semibold text-orange-900 dark:text-orange-400">Est. Wait Time:</span>
-                                    <span className="font-bold text-orange-700 dark:text-orange-500">{simulation.estimatedWaitTime} mins</span>
+                            {/* Wait Time Summary - ONLY IF NOT BOOKED */}
+                            {!alreadyBooked && (
+                                <div className="bg-orange-50 dark:bg-orange-950/20 rounded-lg p-3 border border-orange-100 dark:border-orange-900/40">
+                                    <div className="flex justify-between items-center text-sm mb-1">
+                                        <span className="font-semibold text-orange-900 dark:text-orange-400">Est. Wait Time:</span>
+                                        <span className="font-bold text-orange-700 dark:text-orange-500">{simulation.estimatedWaitTime} mins</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="font-semibold text-foreground">Actual Start Time:</span>
+                                        <span className="font-bold text-primary">{format(new Date(simulation.actualStartTime), 'h:mm a')}</span>
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-2 border-t pt-2 border-orange-200/50">
+                                        AI estimated duration: {simulation.estimatedDuration} mins • Queue position: {simulation.queuePosition}
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="font-semibold text-foreground">Actual Start Time:</span>
-                                    <span className="font-bold text-primary">{format(new Date(simulation.actualStartTime), 'h:mm a')}</span>
-                                </div>
-                                <div className="text-[10px] text-muted-foreground mt-2 border-t pt-2 border-orange-200/50">
-                                    AI estimated duration: {simulation.estimatedDuration} mins • Queue position: {simulation.queuePosition}
-                                </div>
-                            </div>
+                            )}
                         </div>
                     ) : simError ? (
                         <div className="text-center py-6 text-red-500 text-sm font-semibold">

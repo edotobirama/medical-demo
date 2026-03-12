@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { User, Calendar, Clock, Activity, FileText, ArrowLeft, Video, ShieldAlert } from 'lucide-react';
 import EndConsultationButton from '@/components/EndConsultationButton';
 import CallPatientButton from '@/components/CallPatientButton';
-import MedicalReportGenerator from '@/components/MedicalReportGenerator';
+import DoctorFinalizeConsultation from '@/components/DoctorFinalizeConsultation';
 
 export const revalidate = 0;
 
@@ -200,9 +200,15 @@ async function ConsultationFetcher({ id }: { id: string }) {
                             )}
                         </div>
 
-                        {/* AI Medical Report Generator — for digital consultations */}
-                        {appointment.type === 'ONLINE' && (
-                            <MedicalReportGenerator appointmentId={appointment.id} />
+                        {/* Doctor Finalize Consultation Block (Digital or Upload) - for post-consultation */}
+                        {appointment.status === 'COMPLETED' ? (
+                            <DoctorFinalizeConsultation appointmentId={appointment.id} />
+                        ) : (
+                            <div className="bg-primary/5 border border-primary/20 p-6 rounded-2xl text-center">
+                                <FileText className="w-10 h-10 mx-auto text-primary/50 mb-3" />
+                                <h3 className="font-bold text-foreground mb-1">Post-Consultation Wrap-Up</h3>
+                                <p className="text-sm text-muted-foreground">End the consultation to generate AI summaries and attach prescriptions for the patient.</p>
+                            </div>
                         )}
                     </div>
                 </div>

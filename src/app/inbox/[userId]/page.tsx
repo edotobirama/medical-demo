@@ -50,7 +50,7 @@ export default function DirectMessaging() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages.length]);
 
     const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();

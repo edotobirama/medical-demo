@@ -13,6 +13,7 @@ import clsx from "clsx";
 import LiveTranscription from '@/components/LiveTranscription';
 import PatientReportsModal from '@/components/PatientReportsModal';
 import LivePossibilitiesModal from '@/components/LivePossibilitiesModal';
+import PatientPostConsultation from '@/components/PatientPostConsultation';
 
 interface AppointmentData {
     id: string;
@@ -162,6 +163,15 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                     if (aptRes.ok) {
                         const aptData = await aptRes.json();
                         setAppointment(aptData);
+
+                        // If user reloads the page and the call is already COMPLETED
+                        if (aptData.status === 'COMPLETED') {
+                            setCallEnded(true);
+                            setConnected(false);
+                            setConnecting(false);
+                            endedRef.current = true;
+                            return; // Stop trying to connect to a finished call
+                        }
                     }
                 }
             } catch (e) {
@@ -172,25 +182,48 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         fetchAppointment();
     }, [appointmentId]);
 
-    // Simulate WebRTC connection
+    // WebRTC Connection / Waiting Room Logic
     useEffect(() => {
         if (!appointmentId) return;
 
-        const timer = setTimeout(() => {
-            setConnecting(false);
-            setConnected(true);
-
-            // Signal answer if patient
-            if (session?.user?.role !== 'DOCTOR') {
+        if (session?.user?.role === 'DOCTOR') {
+            // Doctors initiate the call
+            const timer = setTimeout(() => {
+                setConnecting(false);
+                setConnected(true);
+                // Call INITIATE
                 fetch('/api/video/signal', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ appointmentId, action: 'ANSWER' })
+                    body: JSON.stringify({ appointmentId, action: 'INITIATE' })
                 }).catch(() => { });
-            }
-        }, 2500);
+            }, 1500);
+            return () => clearTimeout(timer);
+        } else {
+            // Patients wait in the Waiting Room until doctor calls
+            const checkDoctorAvailability = async () => {
+                try {
+                    const res = await fetch(`/api/video/signal?appointmentId=${appointmentId}`);
+                    if (!res.ok) return;
+                    const data = await res.json();
 
-        return () => clearTimeout(timer);
+                    if (data.hasActiveCall) {
+                        setConnecting(false);
+                        setConnected(true);
+
+                        // Answer the call automatically
+                        fetch('/api/video/signal', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ appointmentId, action: 'ANSWER' })
+                        }).catch(() => { });
+                    }
+                } catch (e) { }
+            };
+
+            const interval = setInterval(checkDoctorAvailability, 3000);
+            return () => clearInterval(interval);
+        }
     }, [appointmentId, session]);
 
     // Reliable Heartbeat: Maintain the session and detect disconnects
@@ -291,14 +324,12 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         return () => clearInterval(countdown);
     }, [callEnded]);
 
-    // Perform redirect when countdown reaches 0
+    // Perform redirect when countdown reaches 0 for doctors
     useEffect(() => {
-        if (!callEnded || redirectCountdown > 0) return;
+        if (!callEnded || session?.user?.role !== 'DOCTOR') return;
 
-        if (session?.user?.role === 'DOCTOR') {
+        if (redirectCountdown <= 0) {
             router.push(`/doctor/consultation/${appointmentId}`);
-        } else {
-            router.push('/patient');
         }
     }, [callEnded, redirectCountdown, session, appointmentId, router]);
 
@@ -403,6 +434,16 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
 
     // === Call Ended Overlay ===
     if (callEnded) {
+        if (!isDoctor) {
+            return (
+                <PatientPostConsultation
+                    appointmentId={appointmentId}
+                    callDuration={formatDuration(callDuration)}
+                    remoteName={remoteName}
+                />
+            );
+        }
+
         const endMessage = endedBy === 'SELF'
             ? 'You ended the call'
             : endedBy === 'DOCTOR'
@@ -440,14 +481,14 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                     </div>
 
                     <p className="text-neutral-500 text-sm mb-4">
-                        Redirecting to your dashboard in <span className="text-teal-400 font-bold">{redirectCountdown}</span>s...
+                        Redirecting to your dashboard in <span className="text-teal-400 font-bold">{Math.max(0, redirectCountdown)}</span>s...
                     </p>
 
                     {/* Progress bar */}
                     <div className="w-full bg-neutral-800 rounded-full h-1 overflow-hidden">
                         <div
                             className="h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full transition-all duration-1000 ease-linear"
-                            style={{ width: `${((4 - redirectCountdown) / 4) * 100}%` }}
+                            style={{ width: `${Math.max(0, ((4 - redirectCountdown) / 4) * 100)}%` }}
                         />
                     </div>
 
@@ -456,13 +497,11 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                         onClick={() => {
                             if (session?.user?.role === 'DOCTOR') {
                                 router.push(`/doctor/consultation/${appointmentId}`);
-                            } else {
-                                router.push('/patient');
                             }
                         }}
                         className="mt-6 px-8 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-medium transition-all border border-neutral-700 hover:border-neutral-600"
                     >
-                        Go to Dashboard Now
+                        Go to Wrap-Up Now
                     </button>
                 </div>
             </div>
@@ -521,25 +560,34 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 </div>
             )}
 
-            {/* Main Video Area (Remote User) */}
+            {/* Main Video Area (Remote User / Waiting Room) */}
             <div className="w-full h-screen absolute inset-0 flex items-center justify-center">
                 {connecting || reconnecting ? (
                     <div className="flex flex-col items-center gap-6 animate-pulse">
                         <div className="relative">
-                            <div className="w-28 h-28 rounded-full border-4 border-t-teal-500 border-r-teal-500/50 border-b-neutral-700 border-l-neutral-700 animate-spin" />
+                            <div className={clsx(
+                                "w-28 h-28 rounded-full border-4 animate-spin",
+                                !isDoctor ? "border-amber-500 border-r-amber-500/50 border-b-neutral-700 border-l-neutral-700" : "border-teal-500 border-r-teal-500/50 border-b-neutral-700 border-l-neutral-700"
+                            )} />
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <div className="w-20 h-20 rounded-full bg-neutral-800 flex items-center justify-center">
-                                    <User size={32} className="text-neutral-500" />
+                                    <User size={32} className={!isDoctor ? "text-amber-500" : "text-neutral-500"} />
                                 </div>
                             </div>
                         </div>
                         <div className="text-center">
                             <p className="text-lg font-medium text-neutral-300">
-                                {reconnecting ? 'Reconnecting...' : `Connecting to ${remoteName}...`}
+                                {reconnecting ? 'Reconnecting...' : !isDoctor ? 'Waiting Room' : `Connecting to ${remoteName}...`}
                             </p>
-                            <p className="text-sm text-neutral-500 mt-1">
-                                {reconnecting ? 'Restoring your session' : 'Setting up secure video channel'}
+                            <p className="text-sm text-neutral-500 mt-1 max-w-sm px-4">
+                                {reconnecting ? 'Restoring your session' : !isDoctor ? `${remoteName} has not joined the call yet. You can keep this page open, or return to your dashboard.` : 'Setting up secure video channel'}
                             </p>
+
+                            {!isDoctor && !reconnecting && (
+                                <button onClick={() => router.push('/patient')} className="mt-8 px-6 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-full text-sm transition-colors border border-neutral-700">
+                                    Return to Dashboard
+                                </button>
+                            )}
                         </div>
                     </div>
                 ) : (

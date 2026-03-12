@@ -81,6 +81,9 @@ model PatientProfile {
   appointments Appointment[]
   medicalReports MedicalReport[]
   waitlistEntries WaitlistEntry[]
+
+  masterAiSummary String?
+  lastSummaryUpdate DateTime?
 }
 
 model Slot {
@@ -144,6 +147,8 @@ model MedicalReport {
   
   uploadedById String
   uploadedBy   User @relation("UploadedReports", fields: [uploadedById], references: [id])
+  
+  appointmentId String?
   
   title     String
   fileUrl   String   // Encrypted path or URL
