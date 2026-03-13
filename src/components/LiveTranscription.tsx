@@ -191,8 +191,11 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         };
 
         recognition.onerror = (event: any) => {
-            if (event.error === 'aborted') {
-                // Safely ignore aborted errors; this happens intentionally when stop() is called
+            // Silently ignore expected/harmless errors:
+            // - 'aborted': intentional stop() call
+            // - 'no-speech': silence detected (normal during pauses in conversation)
+            // - 'network': transient network hiccups
+            if (event.error === 'aborted' || event.error === 'no-speech' || event.error === 'network') {
                 return;
             }
             console.error('Speech recognition error:', event.error);
