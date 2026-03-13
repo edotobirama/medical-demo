@@ -7,12 +7,12 @@ import { useSession } from "next-auth/react";
 import {
     Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare,
     Maximize2, Minimize2, Clock, User, Wifi, WifiOff, AlertCircle,
-    FileText, Lightbulb, HelpCircle
+    FileText
 } from "lucide-react";
 import clsx from "clsx";
 import LiveTranscription from '@/components/LiveTranscription';
 import PatientReportsModal from '@/components/PatientReportsModal';
-import LivePossibilitiesModal from '@/components/LivePossibilitiesModal';
+import LivePossibilitiesPanel from '@/components/LivePossibilitiesPanel';
 import PatientPostConsultation from '@/components/PatientPostConsultation';
 
 interface AppointmentData {
@@ -49,7 +49,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
     const [cameraError, setCameraError] = useState<string | null>(null);
     const [hasCamera, setHasCamera] = useState(false);
     const [showReports, setShowReports] = useState(false);
-    const [showPossibilities, setShowPossibilities] = useState(false);
+
     const durationRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const endedRef = useRef(false);
     const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -815,9 +815,9 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 </div>
             )}
 
-            {/* Doctor Specific Actions (Floating Left) */}
+            {/* Doctor Specific Actions (Floating Left - View Reports only) */}
             {isDoctor && connected && (
-                <div className="absolute top-24 md:top-28 left-4 md:left-8 flex flex-col gap-3 z-30 animate-in slide-in-from-left duration-500 delay-1000 fill-mode-both">
+                <div className="absolute bottom-24 md:bottom-28 left-4 md:left-8 flex flex-col gap-3 z-30 animate-in slide-in-from-left duration-500 delay-1000 fill-mode-both">
                     <button
                         onClick={() => setShowReports(true)}
                         className="bg-neutral-800/80 hover:bg-neutral-700/80 backdrop-blur-md border border-neutral-700/50 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 transition-all hover:scale-105 group"
@@ -830,40 +830,24 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                             <p className="text-[10px] text-neutral-400 font-medium leading-tight">Patient documents</p>
                         </div>
                     </button>
-
-                    <button
-                        onClick={() => setShowPossibilities(true)}
-                        className="bg-neutral-800/80 hover:bg-neutral-700/80 backdrop-blur-md border border-neutral-700/50 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 transition-all hover:scale-105 group"
-                    >
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center relative overflow-hidden group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                            <div className="absolute inset-0 bg-amber-400/20 animate-pulse group-hover:hidden" />
-                            <Lightbulb size={18} className="relative z-10" />
-                        </div>
-                        <div className="text-left">
-                            <p className="text-sm font-bold flex items-center gap-1.5">
-                                Help (AI Analysis)
-                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                            </p>
-                            <p className="text-[10px] text-neutral-400 font-medium leading-tight">AI transcript analysis</p>
-                        </div>
-                    </button>
                 </div>
             )}
 
             {/* Modals */}
             {isDoctor && (
-                <>
-                    <PatientReportsModal
-                        appointmentId={appointmentId}
-                        isOpen={showReports}
-                        onClose={() => setShowReports(false)}
-                    />
-                    <LivePossibilitiesModal
-                        appointmentId={appointmentId}
-                        isOpen={showPossibilities}
-                        onClose={() => setShowPossibilities(false)}
-                    />
-                </>
+                <PatientReportsModal
+                    appointmentId={appointmentId}
+                    isOpen={showReports}
+                    onClose={() => setShowReports(false)}
+                />
+            )}
+
+            {/* AI Live Possibilities Panel (auto-displayed for doctor) */}
+            {isDoctor && connected && appointmentId && (
+                <LivePossibilitiesPanel
+                    appointmentId={appointmentId}
+                    isConnected={connected}
+                />
             )}
 
             {/* Live Transcription Panel */}

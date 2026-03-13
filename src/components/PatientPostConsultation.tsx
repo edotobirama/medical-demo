@@ -54,17 +54,32 @@ export default function PatientPostConsultation({ appointmentId, callDuration, r
         return () => clearInterval(interval);
     }, [appointmentId]);
 
-    const handleDownload = (report: any) => {
-        if (report.fileUrl && report.fileUrl !== '#') {
-            window.open(report.fileUrl, '_blank');
+    const handleDownload = async (report: any) => {
+        if (report.fileUrl && report.fileUrl !== '#' && !report.fileUrl.includes('mock-prescription')) {
+            // Valid file URL — trigger download via anchor tag
+            const a = document.createElement('a');
+            a.href = report.fileUrl;
+            a.download = report.title.replace(/\s+/g, '_') + '.' + (report.fileUrl.split('.').pop() || 'jpg');
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         } else {
-            // Provide a generic text file download for digital reports
-            const text = `Medical Report - ${report.title}\n\nSummary:\n${report.aiSummary}\n\nNotes/Prescription:\n${report.aiPatientNotes}`;
-            const blob = new Blob([text], { type: 'text/plain' });
+            // Fallback: generate a text file with the report content
+            const lines = [
+                `Medical Report - ${report.title}`,
+                `Date: ${new Date(report.createdAt || Date.now()).toLocaleDateString()}`,
+                '',
+            ];
+            if (report.aiSummary) lines.push(`Summary:\n${report.aiSummary}\n`);
+            if (report.aiPatientNotes) lines.push(`Notes/Prescription:\n${report.aiPatientNotes}\n`);
+            if (!report.aiSummary && !report.aiPatientNotes) lines.push('No content available for download.');
+
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${report.title.replace(/\\s+/g, '_')}.txt`;
+            a.download = `${report.title.replace(/\s+/g, '_')}.txt`;
             a.click();
             URL.revokeObjectURL(url);
         }

@@ -7,6 +7,7 @@ import DoctorConsultationButtons from "@/components/DoctorConsultationButtons";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import DoctorFollowUpBooking from "@/components/DoctorFollowUpBooking";
+import DoctorAnalyticsDashboard from "@/components/DoctorAnalyticsDashboard";
 
 export const revalidate = 0;
 
@@ -177,6 +178,11 @@ export default async function DoctorDashboard() {
                             initialClosingTime={doctorProfile.closingTime || '17:00'}
                         />
                     </div>
+                </div>
+
+                {/* Analytics Dashboard */}
+                <div className="mt-12">
+                    <DoctorAnalyticsDashboard />
                 </div>
             </div>
         </div>

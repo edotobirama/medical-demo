@@ -17,6 +17,8 @@ export default function DoctorFinalizeConsultation({ appointmentId }: DoctorFina
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
 
+    const [uploading, setUploading] = useState(false);
+
     useEffect(() => {
         const fetchSummary = async () => {
             setLoadingSummary(true);
@@ -47,10 +49,30 @@ export default function DoctorFinalizeConsultation({ appointmentId }: DoctorFina
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Use the existing mock logic for documents since we don't have S3 set up:
-        // In a real app we upload to AWS S3. For this demo, we mock it.
-        const mockUrl = `/uploads/mock-prescription-${Date.now()}.jpg`;
-        setUploadUrl(mockUrl);
+        setUploading(true);
+        setError('');
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch('/api/consultations/upload-prescription', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setUploadUrl(data.fileUrl);
+            } else {
+                const data = await res.json();
+                setError(data.error || 'Failed to upload prescription');
+            }
+        } catch (err: any) {
+            setError('Failed to upload file. Please try again.');
+            console.error('Upload error:', err);
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -167,6 +189,11 @@ export default function DoctorFinalizeConsultation({ appointmentId }: DoctorFina
                                     <Sparkles size={24} />
                                     <span>Prescription Uploaded Successfully!</span>
                                     <span className="text-xs font-normal text-muted-foreground mt-1">Ready to attach to patient record.</span>
+                                </div>
+                            ) : uploading ? (
+                                <div className="text-primary font-bold flex flex-col items-center gap-2">
+                                    <Loader2 size={24} className="animate-spin" />
+                                    <span>Uploading prescription...</span>
                                 </div>
                             ) : (
                                 <>

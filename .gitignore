@@ -49,3 +49,6 @@ tsc_output.txt
 
 # local postgres data
 pg_data/
+
+# user uploaded files
+public/uploads/
