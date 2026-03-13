@@ -9,7 +9,10 @@ export const authConfig = {
             const isLoggedIn = !!auth?.user;
             const isOnDashboard = nextUrl.pathname.startsWith('/dashboard') ||
                 (nextUrl.pathname.startsWith('/doctor') && !nextUrl.pathname.startsWith('/doctors')) ||
-                nextUrl.pathname.startsWith('/patient');
+                nextUrl.pathname.startsWith('/patient') ||
+                nextUrl.pathname.startsWith('/inbox') ||
+                nextUrl.pathname.startsWith('/messages') ||
+                nextUrl.pathname.startsWith('/video');
             const isOnAdmin = nextUrl.pathname.startsWith('/admin');
 
             if (isOnAdmin) {

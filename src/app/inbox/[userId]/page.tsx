@@ -17,6 +17,7 @@ export default function DirectMessaging() {
     const [messages, setMessages] = useState<any[]>([]);
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);
+    const [contactName, setContactName] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -24,7 +25,12 @@ export default function DirectMessaging() {
     };
 
     useEffect(() => {
-        if (status === 'unauthenticated') router.push('/login');
+        // Don't do anything while session is still loading
+        if (status === 'loading') return;
+
+        if (status === 'unauthenticated') {
+            router.replace('/login');
+        }
     }, [status, router]);
 
     const fetchMessages = async () => {
@@ -79,6 +85,16 @@ export default function DirectMessaging() {
             setSending(false);
         }
     };
+
+    // Show loading while session hydrates — prevents auth loop
+    if (status === 'loading') {
+        return (
+            <div className="flex flex-col h-screen bg-background items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+                <p className="text-muted-foreground mt-4 font-medium">Loading conversation...</p>
+            </div>
+        );
+    }
 
     if (status !== 'authenticated') return null;
 

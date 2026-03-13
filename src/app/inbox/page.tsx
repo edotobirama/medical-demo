@@ -15,25 +15,40 @@ export default function InboxPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Don't do anything while session is still loading
+        if (status === 'loading') return;
+
         if (status === 'unauthenticated') {
-            router.push('/login');
+            router.replace('/login');
             return;
         }
-        if (status === 'authenticated') {
-            fetch('/api/messages')
-                .then(r => r.json())
-                .then(data => {
-                    if (data.conversations) {
-                        setConversations(data.conversations);
-                    }
-                    setLoading(false);
-                })
-                .catch(e => {
-                    console.error(e);
-                    setLoading(false);
-                });
-        }
+
+        // Authenticated — fetch conversations
+        fetch('/api/messages')
+            .then(r => r.json())
+            .then(data => {
+                if (data.conversations) {
+                    setConversations(data.conversations);
+                }
+                setLoading(false);
+            })
+            .catch(e => {
+                console.error(e);
+                setLoading(false);
+            });
     }, [status, router]);
+
+    // Show loading state while session is being determined
+    if (status === 'loading') {
+        return (
+            <div className="min-h-screen bg-background text-foreground flex flex-col pt-20">
+                <Navbar transparent={false} />
+                <div className="container py-8 max-w-4xl mx-auto flex-grow">
+                    <div className="text-center py-20 text-muted-foreground">Loading...</div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col pt-20">
