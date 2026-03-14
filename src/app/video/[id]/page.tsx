@@ -324,6 +324,31 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         return () => clearInterval(countdown);
     }, [callEnded]);
 
+    // Handle unexpected disconnects (closing tab or navigating away)
+    useEffect(() => {
+        const handleUnload = () => {
+            if (connected && !callEnded && !endedRef.current && appointmentId) {
+                // Use keepalive to ensure the signal reaches the server during page unload
+                fetch('/api/video/signal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ appointmentId, action: 'END' }),
+                    keepalive: true
+                }).catch(() => {});
+            }
+        };
+
+        window.addEventListener('beforeunload', handleUnload);
+        window.addEventListener('unload', handleUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleUnload);
+            window.removeEventListener('unload', handleUnload);
+            // Trigger cleanup if component unmounts normally
+            handleUnload();
+        };
+    }, [appointmentId, connected, callEnded]);
+
     // Perform redirect when countdown reaches 0 for doctors
     useEffect(() => {
         if (!callEnded || session?.user?.role !== 'DOCTOR') return;

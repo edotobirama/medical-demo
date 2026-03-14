@@ -194,6 +194,129 @@
   --ring: 262 83% 58%;
 }
 
+.theme-cyberpunk {
+  /* CYBERPUNK THEME - Neon, Dark, High-Tech */
+  --font-heading: var(--font-space), sans-serif;
+  --font-body: var(--font-space), sans-serif;
+  --radius: 0rem;
+
+  --background: 240 10% 4%;
+  /* Very dark gray/black */
+  --foreground: 180 100% 50%;
+  /* Neon cyan text */
+
+  --card: 240 10% 6%;
+  --card-foreground: 180 100% 50%;
+
+  --popover: 240 10% 6%;
+  --popover-foreground: 180 100% 50%;
+
+  --primary: 180 100% 50%;
+  /* Neon Cyan */
+  --primary-foreground: 240 10% 4%;
+  /* Dark text on neon */
+
+  --secondary: 320 100% 50%;
+  /* Neon Pink */
+  --secondary-foreground: 240 10% 4%;
+
+  --muted: 240 10% 10%;
+  --muted-foreground: 180 100% 30%;
+  /* Dim cyan */
+
+  --accent: 320 100% 50%;
+  --accent-foreground: 240 10% 4%;
+
+  --destructive: 0 100% 50%;
+  /* Neon Red */
+  --destructive-foreground: 240 10% 4%;
+
+  --border: 180 100% 30%;
+  /* Dim cyan borders */
+  --input: 240 10% 10%;
+  --ring: 180 100% 50%;
+}
+
+.theme-nature {
+  /* NATURE THEME - Earthy, Calming, Organic */
+  --font-heading: var(--font-playfair), serif;
+  --font-body: var(--font-lato), sans-serif;
+  --radius: 1rem;
+
+  --background: 120 15% 95%;
+  /* Soft green-tinted off-white */
+  --foreground: 120 20% 20%;
+  /* Dark forest green text */
+
+  --card: 120 20% 98%;
+  --card-foreground: 120 20% 20%;
+
+  --popover: 120 20% 98%;
+  --popover-foreground: 120 20% 20%;
+
+  --primary: 130 15% 35%;
+  /* Forest Green */
+  --primary-foreground: 120 30% 95%;
+  /* Soft cream text */
+
+  --secondary: 40 30% 85%;
+  /* Sand/Earth */
+  --secondary-foreground: 120 20% 20%;
+
+  --muted: 120 10% 90%;
+  --muted-foreground: 120 15% 45%;
+
+  --accent: 40 30% 85%;
+  --accent-foreground: 120 20% 20%;
+
+  --destructive: 0 50% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 120 15% 85%;
+  --input: 120 15% 90%;
+  --ring: 130 15% 35%;
+}
+
+.theme-corporate {
+  /* CORPORATE THEME - Professional, Slate, Structured */
+  --font-heading: var(--font-inter), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --radius: 0.25rem;
+  /* Slight rounding */
+
+  --background: 210 20% 98%;
+  /* Slate-tinted off-white */
+  --foreground: 215 25% 20%;
+  /* Slate gray text */
+
+  --card: 0 0% 100%;
+  --card-foreground: 215 25% 20%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 25% 20%;
+
+  --primary: 215 80% 40%;
+  /* Corporate Blue */
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 210 15% 95%;
+  /* Light Slate */
+  --secondary-foreground: 215 25% 20%;
+
+  --muted: 210 15% 95%;
+  --muted-foreground: 215 15% 50%;
+
+  --accent: 210 15% 95%;
+  --accent-foreground: 215 25% 20%;
+
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 210 15% 85%;
+  --input: 210 15% 90%;
+  --ring: 215 80% 40%;
+}
+
 @layer base {
   * {
     @apply border-border;

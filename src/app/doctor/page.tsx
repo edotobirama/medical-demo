@@ -45,6 +45,7 @@ export default async function DoctorDashboard() {
     todayStart.setHours(0, 0, 0, 0);
 
     const appointments = doctorProfile.appointments.filter((a: any) => {
+        if (a.status === 'CANCELLED') return false;
         const time = a.slot?.startTime || a.requestedTime;
         return time ? new Date(time) >= todayStart : false;
     });

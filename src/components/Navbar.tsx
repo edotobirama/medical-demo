@@ -83,7 +83,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                 <div className="hidden lg:flex items-center gap-4">
                     {session ? (
                         <>
-                            <Link href={session.user.role === 'DOCTOR' ? '/doctor/dashboard' : '/patient'}
+                            <Link href={session.user.role === 'DOCTOR' ? '/doctor' : '/patient'}
                                 className={clsx("text-sm font-semibold flex items-center gap-2", textColorClass)}>
                                 <User size={16} />
                                 Dashboard
@@ -101,9 +101,11 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                             Login
                         </Link>
                     )}
-                    <Link href="/book" className="h-10 px-6 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-lg shadow-primary/20 flex items-center justify-center font-bold transition-all">
-                        Book Appointment
-                    </Link>
+                    {(!session || (session.user as any)?.role === 'PATIENT') && (
+                        <Link href="/book" className="h-10 px-6 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-lg shadow-primary/20 flex items-center justify-center font-bold transition-all">
+                            Book Appointment
+                        </Link>
+                    )}
                 </div>
 
                 {/* Mobile Toggle */}
@@ -124,7 +126,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
 
                     {session ? (
                         <>
-                            <Link href={session.user.role === 'DOCTOR' ? '/doctor/dashboard' : '/patient'}
+                            <Link href={session.user.role === 'DOCTOR' ? '/doctor' : '/patient'}
                                 className="flex items-center justify-center w-full py-3 bg-secondary text-secondary-foreground rounded-lg font-bold" onClick={() => setIsOpen(false)}>
                                 Dashboard
                             </Link>
@@ -138,7 +140,9 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                     ) : (
                         <Link href="/login" className="flex items-center justify-center w-full py-3 bg-secondary text-secondary-foreground rounded-lg font-bold" onClick={() => setIsOpen(false)}>Login</Link>
                     )}
-                    <Link href="/book" className="flex items-center justify-center w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 rounded-lg font-bold" onClick={() => setIsOpen(false)}>Book Appointment</Link>
+                    {(!session || (session.user as any)?.role === 'PATIENT') && (
+                        <Link href="/book" className="flex items-center justify-center w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 rounded-lg font-bold" onClick={() => setIsOpen(false)}>Book Appointment</Link>
+                    )}
                 </div>
             )}
         </nav>

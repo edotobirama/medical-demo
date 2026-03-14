@@ -20,16 +20,19 @@ export const metadata: Metadata = {
   description: "Premium healthcare services including digital consultations and verified specialists.",
 };
 
-export default function RootLayout({
+import { auth } from "@/auth";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
   return (
     <html lang="en">
       <body className={`${inter.variable} ${playfair.variable} ${lato.variable} ${spaceGrotesk.variable} ${quicksand.variable} font-sans`}>
         <ThemeWrapper>
-          <Providers>
+          <Providers session={session}>
             <div className="flex flex-col min-h-screen">
               <main className="flex-grow">
                 {children}

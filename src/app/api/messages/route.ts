@@ -37,7 +37,15 @@ export async function GET(req: Request) {
                 data: { isRead: true }
             });
 
-            return NextResponse.json(messages);
+            const contactInfo = await prisma.user.findUnique({
+                where: { id: otherUserId },
+                select: { id: true, name: true, image: true, role: true }
+            });
+
+            return NextResponse.json({
+                messages,
+                contact: contactInfo
+            });
         } else {
             // Fetch all recent conversations (latest message per user)
             // Since Prisma doesn't support DISTINCT ON, we'll fetch messages and group them in-memory, or just fetch all contacts

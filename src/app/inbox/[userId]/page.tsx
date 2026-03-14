@@ -17,7 +17,7 @@ export default function DirectMessaging() {
     const [messages, setMessages] = useState<any[]>([]);
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);
-    const [contactName, setContactName] = useState('');
+    const [contact, setContact] = useState<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -39,7 +39,14 @@ export default function DirectMessaging() {
             const res = await fetch(`/api/messages?userId=${userId}`);
             if (res.ok) {
                 const data = await res.json();
-                setMessages(data);
+                if (Array.isArray(data)) {
+                    setMessages(data);
+                } else {
+                    setMessages(data.messages || []);
+                    if (data.contact) {
+                        setContact(data.contact);
+                    }
+                }
             }
         } catch (e) {
             console.error('Failed to fetch messages', e);
@@ -107,11 +114,15 @@ export default function DirectMessaging() {
                     <ArrowLeft size={20} />
                 </Link>
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                        <UserIcon size={20} />
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary overflow-hidden">
+                        {contact?.image ? (
+                            <img src={contact.image} alt={contact.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <UserIcon size={20} />
+                        )}
                     </div>
                     <div>
-                        <h2 className="font-bold text-foreground leading-tight">Direct Conversation</h2>
+                        <h2 className="font-bold text-foreground leading-tight">{contact?.name || 'Loading...'}</h2>
                         <span className="text-xs text-muted-foreground font-medium flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             Online
