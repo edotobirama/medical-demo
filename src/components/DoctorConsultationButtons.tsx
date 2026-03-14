@@ -4,17 +4,20 @@ import { useState } from 'react';
 import { cancelAppointment, requestRescheduleAppointment, startConsultation } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { Play, XCircle, CalendarClock, Loader2, Phone, Video } from 'lucide-react';
+import { useCustomAlert } from '@/context/AlertContext';
 
 export default function DoctorConsultationButtons({ appointmentId, status, type }: { appointmentId: string, status: string, type: string }) {
     const [loading, setLoading] = useState<string | null>(null);
     const router = useRouter();
+
+    const { showAlert, showConfirm } = useCustomAlert();
 
     const handleStart = async () => {
         setLoading('start');
         try {
             const res = await startConsultation(appointmentId);
             if (res.error) {
-                alert(res.error);
+                showAlert(res.error, 'error');
                 setLoading(null);
             } else {
                 if (type === 'ONLINE') {
@@ -25,7 +28,7 @@ export default function DoctorConsultationButtons({ appointmentId, status, type 
                 }
             }
         } catch (e) {
-            alert('An error occurred.');
+            showAlert('An error occurred while starting.', 'error');
             setLoading(null);
         }
     };
@@ -47,10 +50,10 @@ export default function DoctorConsultationButtons({ appointmentId, status, type 
                 router.push(`/doctor/consultation/${appointmentId}`);
             } else {
                 const data = await res.json();
-                alert(`Failed to initiate call: ${data.error || 'Unknown error'}`);
+                showAlert(`Failed to initiate call: ${data.error || 'Unknown error'}`, 'error');
             }
         } catch (e) {
-            alert('Failed to initiate video call.');
+            showAlert('Failed to initiate video call.', 'error');
         } finally {
             setLoading(null);
         }
@@ -72,38 +75,46 @@ export default function DoctorConsultationButtons({ appointmentId, status, type 
                 window.open(`/video/${appointmentId}`, '_blank');
             } else {
                 const data = await res.json();
-                alert(`Failed to call: ${data.error || 'Unknown error'}`);
+                showAlert(`Failed to call: ${data.error || 'Unknown error'}`, 'error');
             }
         } catch (e) {
-            alert('Failed to initiate video call.');
+            showAlert('Failed to initiate video call.', 'error');
         } finally {
             setLoading(null);
         }
     };
 
     const handleCancel = async () => {
-        if (!confirm('Are you sure you want to cancel this appointment?')) return;
+        const confirmed = await showConfirm('Cancel Appointment', 'Are you sure you want to cancel this appointment?');
+        if (!confirmed) return;
         setLoading('cancel');
         try {
             const res = await cancelAppointment(appointmentId);
-            if (res.error) alert(res.error);
-            else router.refresh();
+            if (res.error) showAlert(res.error, 'error');
+            else {
+                showAlert('Appointment canceled', 'success');
+                router.refresh();
+            }
         } catch (e) {
-            alert('An error occurred.');
+            showAlert('An error occurred while canceling.', 'error');
         } finally {
             setLoading(null);
         }
     };
 
     const handleReschedule = async () => {
-        if (!confirm('Request the patient to reschedule this appointment?')) return;
+        const confirmed = await showConfirm('Reschedule Appointment', 'Request the patient to reschedule this appointment?');
+        if (!confirmed) return;
         setLoading('reschedule');
         try {
             const res = await requestRescheduleAppointment(appointmentId);
-            if (res.error) alert(res.error);
-            else router.refresh();
+            if (res.error) showAlert(res.error, 'error');
+            else {
+                showAlert('Reschedule requested successfully.', 'success');
+                router.refresh();
+            }
         } catch (e) {
-            alert('An error occurred.');
+            showAlert('An error occurred while requesting reschedule.', 'error');
         } finally {
             setLoading(null);
         }

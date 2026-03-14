@@ -5,6 +5,7 @@ import { requestRefund } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { RefreshCcw, DollarSign, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useCustomAlert } from '@/context/AlertContext';
 
 export default function PatientRefundReschedule({
     appointmentId,
@@ -22,19 +23,27 @@ export default function PatientRefundReschedule({
     const [refundAmount, setRefundAmount] = useState<number | null>(null);
     const router = useRouter();
 
+    const { showAlert, showConfirm } = useCustomAlert();
+
     const handleRefund = async () => {
-        if (!confirm(`Are you sure you want to request a refund of $${amountPaid.toFixed(2)}? This action cannot be undone.`)) return;
+        const confirmed = await showConfirm(
+            'Confirm Refund',
+            `Are you sure you want to request a refund of $${amountPaid.toFixed(2)}? This action cannot be undone.`
+        );
+        if (!confirmed) return;
+        
         setLoading('refund');
         try {
             const res = await requestRefund(appointmentId);
             if (res.error) {
-                alert(res.error);
+                showAlert(res.error, 'error');
             } else {
                 setRefunded(true);
                 setRefundAmount(res.refundAmount || amountPaid);
+                showAlert('Refund processed successfully', 'success');
             }
         } catch (e) {
-            alert('An error occurred while processing your refund.');
+            showAlert('An error occurred while processing your refund.', 'error');
         } finally {
             setLoading(null);
         }

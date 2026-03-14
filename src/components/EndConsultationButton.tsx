@@ -4,13 +4,18 @@ import { useState } from 'react';
 import { completeAppointment } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, Loader2 } from 'lucide-react';
+import { useCustomAlert } from '@/context/AlertContext';
 
 export default function EndConsultationButton({ appointmentId }: { appointmentId: string }) {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
+    const { showAlert, showConfirm } = useCustomAlert();
+
     const handleEnd = async () => {
-        if (!confirm('Are you sure you want to end this session and mark it as completed?')) return;
+        const confirmed = await showConfirm('End Session', 'Are you sure you want to end this session and mark it as completed?');
+        if (!confirmed) return;
+        
         setLoading(true);
         try {
             // Send END signal to terminate any active video call for this appointment
@@ -22,14 +27,14 @@ export default function EndConsultationButton({ appointmentId }: { appointmentId
 
             const res = await completeAppointment(appointmentId);
             if (res.error) {
-                alert(res.error);
+                showAlert(res.error, 'error');
                 setLoading(false);
             } else {
-                alert('Session completed successfully.');
+                showAlert('Session completed successfully.', 'success');
                 router.push('/doctor'); // Redirect to dashboard queue
             }
         } catch (e) {
-            alert('An error occurred while completing the session.');
+            showAlert('An error occurred while completing the session.', 'error');
             setLoading(false);
         }
     };

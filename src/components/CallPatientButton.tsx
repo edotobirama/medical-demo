@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import { Phone, Loader2 } from 'lucide-react';
+import { useCustomAlert } from '@/context/AlertContext';
 
 export default function CallPatientButton({ appointmentId }: { appointmentId: string }) {
     const [loading, setLoading] = useState(false);
     const [called, setCalled] = useState(false);
+
+    const { showAlert } = useCustomAlert();
 
     const handleCall = async () => {
         setLoading(true);
@@ -27,10 +30,10 @@ export default function CallPatientButton({ appointmentId }: { appointmentId: st
                 setTimeout(() => setCalled(false), 10000);
             } else {
                 const data = await res.json();
-                alert(`Failed to call: ${data.error || 'Unknown error'}`);
+                showAlert(`Failed to call: ${data.error || 'Unknown error'}`, 'error');
             }
         } catch (e) {
-            alert('Failed to initiate video call.');
+            showAlert('Failed to initiate video call.', 'error');
         } finally {
             setLoading(false);
         }

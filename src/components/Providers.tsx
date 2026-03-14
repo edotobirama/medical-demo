@@ -8,10 +8,14 @@ interface ProvidersProps {
     session?: Session | null;
 }
 
+import { AlertProvider } from '@/context/AlertContext';
+
 export default function Providers({ children, session }: ProvidersProps) {
     return (
         <SessionProvider session={session}>
-            {children}
+            <AlertProvider>
+                {children}
+            </AlertProvider>
         </SessionProvider>
     );
 }

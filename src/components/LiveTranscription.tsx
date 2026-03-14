@@ -6,6 +6,7 @@ import {
     Globe, Sparkles, Loader2
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useCustomAlert } from '@/context/AlertContext';
 
 interface TranscriptEntry {
     id?: string;
@@ -52,6 +53,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
     const [saving, setSaving] = useState(false);
     const recognitionRef = useRef<any>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const { showAlert } = useCustomAlert();
 
     // Scroll to bottom on new transcript
     useEffect(() => {
@@ -148,7 +150,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
         if (!SpeechRecognition) {
-            alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
+            showAlert('Speech recognition is not supported in your browser. Please use Chrome or Edge.', 'error');
             return;
         }
 
@@ -200,7 +202,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
             }
             console.error('Speech recognition error:', event.error);
             if (event.error === 'not-allowed') {
-                alert('Microphone permission denied. Please allow microphone access.');
+                showAlert('Microphone permission denied. Please allow microphone access.', 'error');
             }
         };
 

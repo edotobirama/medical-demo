@@ -4,23 +4,29 @@ import { useState } from 'react';
 import { completeAppointment } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { CheckCircle } from 'lucide-react';
+import { useCustomAlert } from '@/context/AlertContext';
 
 export default function CompleteAppointmentButton({ appointmentId, disabled }: { appointmentId: string, disabled?: boolean }) {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
+    const { showAlert, showConfirm } = useCustomAlert();
+
     const handleComplete = async () => {
-        if (!confirm('Mark this appointment as completed?')) return;
+        const confirmed = await showConfirm('Complete Appointment', 'Mark this appointment as completed?');
+        if (!confirmed) return;
+        
         setLoading(true);
         try {
             const res = await completeAppointment(appointmentId);
             if (res.error) {
-                alert(res.error);
+                showAlert(res.error, 'error');
             } else {
+                showAlert('Appointment marked as complete', 'success');
                 router.refresh();
             }
         } catch (e) {
-            alert('An error occurred while marking as complete.');
+            showAlert('An error occurred while marking as complete.', 'error');
         } finally {
             setLoading(false);
         }

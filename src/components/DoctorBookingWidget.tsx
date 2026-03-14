@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { Loader2, Calendar, Clock, CheckCircle, Hash, Users, CreditCard, AlertCircle } from "lucide-react";
 import { useSession } from "next-auth/react";
 import clsx from "clsx";
+import { useCustomAlert } from "@/context/AlertContext";
 
 export default function DoctorBookingWidget({
     doctorId,
@@ -27,6 +28,7 @@ export default function DoctorBookingWidget({
     const [paymentNumber, setPaymentNumber] = useState<string | null>(null);
 
     const { data: session, status } = useSession();
+    const { showAlert, showConfirm } = useCustomAlert();
 
     const [requestedTime, setRequestedTime] = useState(() => {
         // default to next hour
@@ -163,14 +165,14 @@ export default function DoctorBookingWidget({
                 if (data.error?.includes('DUPLICATE_BOOKING')) {
                     setAlreadyBooked({ status: 'BOOKED' });
                     setShowPayment(false);
-                    alert('You already have an active appointment booked for this day.');
+                    showAlert('You already have an active appointment booked for this day.', 'error');
                 } else {
-                    alert(`Booking Failed: ${data.error || "Unknown error"}`);
+                    showAlert(`Booking Failed: ${data.error || "Unknown error"}`, 'error');
                 }
             }
         } catch (e) {
             console.error("Booking Error:", e);
-            alert("Network error or server unavailable.");
+            showAlert("Network error or server unavailable.", 'error');
         }
         setBooking(false);
     };
