@@ -40,12 +40,23 @@ export async function POST(req: Request) {
             orderBy: { createdAt: 'asc' }
         });
 
+        // Fetch the 3 most recent reports
+        const recentReports = await (prisma as any).medicalReport.findMany({
+            where: { patientId: appointment.patientId },
+            orderBy: { createdAt: 'desc' },
+            take: 3
+        });
+
         // Build context from all data
         const transcriptText = transcripts.map((t: any) =>
             `[${t.speakerRole}] ${t.englishText || t.originalText}`
         ).join('\n');
 
         const masterAiSummary = (appointment.patient as any).masterAiSummary || 'No prior medical history summary available.';
+
+        const recentReportsText = recentReports.length > 0 
+            ? recentReports.map((r: any, i: number) => `Recent Report ${i+1} (${r.title}):\nSummary: ${r.aiSummary || 'N/A'}\nNotes: ${r.aiPatientNotes || 'N/A'}`).join('\n\n')
+            : 'No recent reports available.';
 
         const contextPrompt = `
 Patient: ${appointment.patient.user.name || 'Unknown'}
@@ -62,6 +73,11 @@ ${transcriptText || 'No transcript available'}
 
 Previous Patient Master Summary (Do not ignore this, merge new insights with it):
 ${masterAiSummary}
+
+Recent Medical Reports (Latest 3):
+${recentReportsText}
+
+INSTRUCTION: Output a comprehensive master report that combines the "Previous Patient Master Summary" + findings from the "Recent Medical Reports" + insights from the current "Consultation Transcript". 
         `.trim();
 
         // Generate AI report

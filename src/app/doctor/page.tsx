@@ -1,5 +1,6 @@
 import { Calendar, CheckCircle, Clock, Users, Video, MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import Link from 'next/link';
 import { format } from "date-fns";
 import DoctorSettingsComponent from "@/components/DoctorSettings";
 import SlotManager from "@/components/SlotManager";
@@ -70,7 +71,9 @@ export default async function DoctorDashboard() {
                     {format(new Date(apt.slot?.startTime || apt.requestedTime), 'p')}
                 </div>
                 <div>
-                    <h4 className="font-bold text-card-foreground text-lg">{apt.patient.user.name}</h4>
+                    <Link href={`/doctor/patient/${apt.patient.id}`}>
+                        <h4 className="font-bold text-card-foreground text-lg hover:text-primary transition-colors cursor-pointer">{apt.patient.user.name}</h4>
+                    </Link>
                     <div className="flex items-center gap-3 mt-1">
                         <span className="text-muted-foreground text-sm flex items-center gap-1">
                             {apt.type === 'ONLINE' ? <Video size={14} className="text-purple-500" /> : <MapPin size={14} className="text-blue-500" />}
