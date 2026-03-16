@@ -1,214 +1,158 @@
-"use client";
+'use client';
 
-import Navbar from '@/components/Navbar';
-import { Mail, Phone, MapPin, Clock, Send, CheckCircle, Loader2 } from 'lucide-react';
-import { useTheme } from '@/context/ThemeContext';
+import { Mail, Phone, MapPin, Clock, Send, CheckCircle, Loader2, ArrowRight } from 'lucide-react';
 import { sendContactMessage } from '@/lib/actions';
 import { useActionState } from 'react';
-import clsx from 'clsx';
 
 export default function ContactPage() {
-    const { theme } = useTheme();
-    const isMinimal = theme === 'minimal';
-    const isDark = ['modern', 'cyberpunk'].includes(theme);
-    const isNature = theme === 'nature';
-    const isPlayful = theme === 'playful';
-
     const [state, formAction, isPending] = useActionState(sendContactMessage, null);
 
     return (
-        <div className={clsx(
-            "min-h-screen pb-24 font-sans transition-colors duration-300 relative overflow-hidden",
-            isMinimal ? "bg-white text-black font-mono" :
-                isDark ? "bg-slate-950 text-white selection:bg-cyan-500/30" :
-                    isNature ? "bg-[#F1F0E8] text-[#2C362B]" :
-                        isPlayful ? "bg-rose-50 text-rose-900" :
-                            "bg-background text-foreground"
-        )}>
-            <Navbar />
-
-            {/* Modern Background Blobs */}
-            {isDark && (
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-cyan-500/20 rounded-full blur-[120px] animate-pulse" />
-                    <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-emerald-500/20 rounded-full blur-[120px] animate-pulse delay-1000" />
-                    <div className="absolute top-[20%] right-[30%] w-[20vw] h-[20vw] bg-blue-500/10 rounded-full blur-[80px]" />
+        <div className="bg-slate-950 min-h-screen text-white font-sans selection:bg-blue-500/30">
+            {/* Header Section */}
+            <section className="relative pt-32 pb-20 overflow-hidden">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-blue-600/10 blur-[120px] rounded-full -z-10"></div>
+                
+                <div className="container mx-auto px-6 text-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-full mb-8">
+                        <Mail size={16} className="text-blue-500" />
+                        <span className="text-xs font-black uppercase tracking-widest text-blue-400">Concierge Support</span>
+                    </div>
+                    <h1 className="text-5xl lg:text-7xl font-black tracking-tighter uppercase mb-6 leading-tight text-white">
+                        Reach Out <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">To Grandview</span>
+                    </h1>
+                    <p className="text-slate-400 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                        Our clinical coordinators are available 24/7 to assist with your medical inquiries and global consultations.
+                    </p>
                 </div>
-            )}
+            </section>
 
-            {/* Hero */}
-            <div className={clsx(
-                "pt-32 pb-20 px-6 text-center transition-colors relative z-10",
-                isMinimal ? "bg-white border-b-4 border-black" :
-                    isDark ? "bg-transparent text-white" :
-                        isNature ? "bg-[#4A5D45] text-[#F1F0E8]" :
-                            isPlayful ? "bg-rose-200 text-rose-900" :
-                                "bg-slate-900 text-white"
-            )}>
-                <h1 className={clsx(
-                    "text-4xl md:text-5xl font-bold mb-4",
-                    isMinimal ? "font-black uppercase tracking-tighter" :
-                        isDark ? "bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-100 to-cyan-200" :
-                            "font-heading"
-                )}>
-                    Get in Touch
-                </h1>
-                <p className={clsx(
-                    "max-w-2xl mx-auto text-lg",
-                    isMinimal ? "font-bold text-black" :
-                        isDark ? "text-slate-400" :
-                            isNature ? "text-[#E5E9DF]" :
-                                "text-slate-300"
-                )}>
-                    We are here to help. Reach out to us for appointments, inquiries, or emergency services.
-                </p>
-            </div>
-
-            <div className="container mx-auto px-6 -mt-10 relative z-20">
-                <div className="grid md:grid-cols-3 gap-6 mb-16">
-                    {[
-                        { icon: Phone, title: "Phone", text: "+1 (555) 123-4567", sub: "24/7 Emergency Line" },
-                        { icon: Mail, title: "Email", text: "contact@grandview.com", sub: "Response within 2 hours" },
-                        { icon: MapPin, title: "Location", text: "123 Medical Plaza", sub: "New York, NY 10001" }
-                    ].map((item, i) => (
-                        <div key={i} className={clsx(
-                            "rounded-2xl p-8 text-center transition-transform hover:-translate-y-1",
-                            isMinimal ? "bg-white border-4 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" :
-                                isDark ? "bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)]" :
-                                    isNature ? "bg-white/80 shadow-md text-[#2C362B]" :
-                                        isPlayful ? "bg-white/80 shadow-md text-rose-900 border-2 border-rose-100" :
-                                            "bg-card border border-border shadow-lg"
-                        )}>
-                            <div className={clsx(
-                                "w-12 h-12 flex items-center justify-center mx-auto mb-4 rounded-xl",
-                                isMinimal ? "bg-black text-white rounded-none" :
-                                    isDark ? "bg-cyan-500/10 text-cyan-400" :
-                                        isNature ? "bg-[#4A5D45]/10 text-[#4A5D45]" :
-                                            isPlayful ? "bg-rose-100 text-rose-500" :
-                                                "bg-primary/10 text-primary"
-                            )}>
-                                <item.icon size={24} />
+            <section className="container mx-auto px-6 pb-40">
+                <div className="grid lg:grid-cols-2 gap-20">
+                    {/* Contact Info */}
+                    <div className="space-y-10">
+                        <div className="p-10 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] hover:border-blue-500/30 transition-all group">
+                            <div className="flex items-center gap-6">
+                                <div className="w-16 h-16 bg-blue-600/10 rounded-2xl flex items-center justify-center border border-blue-600/20 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <Phone size={28} className="text-blue-500 group-hover:text-white" />
+                                </div>
+                                <div>
+                                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Emergency Intake</h4>
+                                    <p className="text-2xl font-black text-white">+1 (800) GRANDVIEW</p>
+                                </div>
                             </div>
-                            <h3 className={clsx("text-xl font-bold mb-2", isDark ? "text-white" : "")}>{item.title}</h3>
-                            <p className={clsx("text-lg font-semibold", isDark ? "text-slate-200" : "")}>{item.text}</p>
-                            <p className={clsx("text-sm",
-                                isMinimal ? "text-black opacity-70" :
-                                    isDark ? "text-slate-400" :
-                                        isNature ? "opacity-80" :
-                                            "text-muted-foreground"
-                            )}>{item.sub}</p>
                         </div>
-                    ))}
-                </div>
 
-                <div className="grid md:grid-cols-2 gap-12 items-start">
-                    {/* Google Maps Embed */}
-                    <div className={clsx(
-                        "rounded-2xl h-[400px] w-full overflow-hidden",
-                        isMinimal ? "border-4 border-black rounded-none" :
-                            isDark ? "border border-white/10" :
-                                isNature ? "shadow-md" :
-                                    "border border-border shadow-sm"
-                    )}>
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.2!2d-73.9857!3d40.7484!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c259a9b3117469%3A0xd134e199a405a163!2sEmpire%20State%20Building!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus"
-                            width="100%"
-                            height="100%"
-                            style={{ border: 0 }}
-                            allowFullScreen
-                            loading="lazy"
-                            referrerPolicy="no-referrer-when-downgrade"
-                            title="Grandview Medical Center Location"
-                        />
+                        <div className="p-10 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] hover:border-indigo-500/30 transition-all group">
+                            <div className="flex items-center gap-6">
+                                <div className="w-16 h-16 bg-indigo-600/10 rounded-2xl flex items-center justify-center border border-indigo-600/20 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                    <Mail size={28} className="text-indigo-500 group-hover:text-white" />
+                                </div>
+                                <div>
+                                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">General Inquiries</h4>
+                                    <p className="text-2xl font-black text-white">care@grandview.com</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-10 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] hover:border-emerald-500/30 transition-all group">
+                            <div className="flex items-center gap-6">
+                                <div className="w-16 h-16 bg-emerald-600/10 rounded-2xl flex items-center justify-center border border-emerald-600/20 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                                    <MapPin size={28} className="text-emerald-500 group-hover:text-white" />
+                                </div>
+                                <div>
+                                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Flagship Hospital</h4>
+                                    <p className="text-xl font-bold text-white">700 Medical Dr, Grandview Heights</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Form */}
-                    <div className={clsx(
-                        "p-8 rounded-2xl",
-                        isMinimal ? "bg-white border-4 border-black rounded-none shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]" :
-                            isDark ? "bg-white/5 border border-white/10 backdrop-blur-md" :
-                                isNature ? "bg-white shadow-md" :
-                                    isPlayful ? "bg-white shadow-md border-2 border-rose-100" :
-                                        "bg-card shadow-sm border border-border"
-                    )}>
-                        <h2 className={clsx("text-2xl font-bold mb-6", isMinimal ? "uppercase font-black" : isDark ? "text-white" : "")}>Send us a Message</h2>
-
-                        {/* Success */}
-                        {state?.success && (
-                            <div className="mb-6 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3 text-emerald-500 font-medium">
-                                <CheckCircle size={20} />
-                                Message sent successfully! We&#39;ll get back to you soon.
+                    {/* Contact Form */}
+                    <div className="bg-white/5 backdrop-blur-3xl border border-white/10 p-12 lg:p-16 rounded-[4rem] group hover:border-blue-500/20 transition-all shadow-3xl">
+                        {state?.success ? (
+                            <div className="h-full flex flex-col items-center justify-center text-center py-20 animate-in fade-in zoom-in duration-500">
+                                <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mb-10 shadow-3xl shadow-emerald-500/20">
+                                    <CheckCircle size={48} className="text-white" />
+                                </div>
+                                <h3 className="text-4xl font-black text-white uppercase tracking-tighter mb-4">Message Transmitted</h3>
+                                <p className="text-slate-400 font-medium">Our clinical team will analyze your request and respond via secure channel within 2 hours.</p>
+                                <button onClick={() => window.location.reload()} className="mt-12 text-blue-500 font-black uppercase tracking-widest text-xs flex items-center gap-2 hover:gap-4 transition-all">
+                                    Send Another Inquiry <ArrowRight size={16} />
+                                </button>
                             </div>
-                        )}
-
-                        {/* Error */}
-                        {state?.error && (
-                            <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-500 font-medium">
-                                {state.error}
-                            </div>
-                        )}
-
-                        <form action={formAction} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className={clsx("text-sm font-medium", isDark ? "text-slate-300" : "")}>First Name</label>
-                                    <input type="text" name="name" required className={clsx("w-full p-3 outline-none transition",
-                                        isMinimal ? "border-2 border-black rounded-none focus:bg-yellow-100 placeholder:text-black/50" :
-                                            isDark ? "bg-slate-950/50 border border-white/10 rounded-lg text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder:text-slate-600" :
-                                                isNature ? "bg-[#F1F0E8] border-none rounded-lg focus:ring-2 focus:ring-[#4A5D45]" :
-                                                    isPlayful ? "bg-rose-50 border-none rounded-xl focus:ring-2 focus:ring-rose-300" :
-                                                        "rounded-lg bg-background border border-border focus:ring-2 focus:ring-primary"
-                                    )} placeholder="John" />
+                        ) : (
+                            <form action={formAction} className="space-y-8">
+                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter mb-10">Secure Gateway</h3>
+                                <div className="grid sm:grid-cols-2 gap-8">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Full Name</label>
+                                        <input 
+                                            name="name" 
+                                            type="text" 
+                                            required 
+                                            placeholder="John Doe" 
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all font-medium"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Email Address</label>
+                                        <input 
+                                            name="email" 
+                                            type="email" 
+                                            required 
+                                            placeholder="john@example.com" 
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all font-medium"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className={clsx("text-sm font-medium", isDark ? "text-slate-300" : "")}>Last Name</label>
-                                    <input type="text" className={clsx("w-full p-3 outline-none transition",
-                                        isMinimal ? "border-2 border-black rounded-none focus:bg-yellow-100 placeholder:text-black/50" :
-                                            isDark ? "bg-slate-950/50 border border-white/10 rounded-lg text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder:text-slate-600" :
-                                                isNature ? "bg-[#F1F0E8] border-none rounded-lg focus:ring-2 focus:ring-[#4A5D45]" :
-                                                    isPlayful ? "bg-rose-50 border-none rounded-xl focus:ring-2 focus:ring-rose-300" :
-                                                        "rounded-lg bg-background border border-border focus:ring-2 focus:ring-primary"
-                                    )} placeholder="Doe" />
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Clinical Service</label>
+                                    <select 
+                                        name="subject" 
+                                        className="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium appearance-none"
+                                    >
+                                        <option value="Cardiology">Cardiology Center</option>
+                                        <option value="Laboratory">Advanced Laboratory</option>
+                                        <option value="Emergency">24/7 Emergency</option>
+                                        <option value="General">General Inquiries</option>
+                                    </select>
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className={clsx("text-sm font-medium", isDark ? "text-slate-300" : "")}>Email Address</label>
-                                <input type="email" name="email" required className={clsx("w-full p-3 outline-none transition",
-                                    isMinimal ? "border-2 border-black rounded-none focus:bg-yellow-100 placeholder:text-black/50" :
-                                        isDark ? "bg-slate-950/50 border border-white/10 rounded-lg text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder:text-slate-600" :
-                                            isNature ? "bg-[#F1F0E8] border-none rounded-lg focus:ring-2 focus:ring-[#4A5D45]" :
-                                                isPlayful ? "bg-rose-50 border-none rounded-xl focus:ring-2 focus:ring-rose-300" :
-                                                    "rounded-lg bg-background border border-border focus:ring-2 focus:ring-primary"
-                                )} placeholder="john@example.com" />
-                            </div>
-                            <div className="space-y-2">
-                                <label className={clsx("text-sm font-medium", isDark ? "text-slate-300" : "")}>Message</label>
-                                <textarea name="message" required className={clsx("w-full p-3 outline-none transition h-32",
-                                    isMinimal ? "border-2 border-black rounded-none focus:bg-yellow-100 placeholder:text-black/50" :
-                                        isDark ? "bg-slate-950/50 border border-white/10 rounded-lg text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder:text-slate-600" :
-                                            isNature ? "bg-[#F1F0E8] border-none rounded-lg focus:ring-2 focus:ring-[#4A5D45]" :
-                                                isPlayful ? "bg-rose-50 border-none rounded-xl focus:ring-2 focus:ring-rose-300" :
-                                                    "rounded-lg bg-background border border-border focus:ring-2 focus:ring-primary"
-                                )} placeholder="How can we help you?"></textarea>
-                            </div>
-                            <button type="submit" disabled={isPending} className={clsx(
-                                "w-full py-4 font-bold transition flex items-center justify-center gap-2 disabled:opacity-60",
-                                isMinimal ? "bg-black text-white rounded-none hover:bg-yellow-400 hover:text-black border-2 border-black uppercase" :
-                                    isDark ? "bg-cyan-500 text-slate-950 rounded-xl hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-[1.02]" :
-                                        isNature ? "bg-[#4A5D45] text-[#F1F0E8] rounded-xl hover:bg-[#2C362B]" :
-                                            isPlayful ? "bg-rose-400 text-white rounded-full hover:bg-rose-500 hover:scale-105" :
-                                                "bg-primary text-primary-foreground rounded-xl hover:opacity-90"
-                            )}>
-                                {isPending ? (
-                                    <Loader2 className="animate-spin" size={18} />
-                                ) : (
-                                    <>Send Message <Send size={18} /></>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Detailed Inquiry</label>
+                                    <textarea 
+                                        name="message" 
+                                        required 
+                                        rows={6} 
+                                        placeholder="How can our specialists assist you today?" 
+                                        className="w-full bg-white/5 border border-white/10 rounded-[2.5rem] px-8 py-6 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium resize-none"
+                                    />
+                                </div>
+                                <button 
+                                    disabled={isPending}
+                                    type="submit" 
+                                    className="w-full py-6 bg-white text-slate-950 font-black rounded-3xl hover:bg-slate-50 transition-all flex items-center justify-center gap-3 shadow-2xl uppercase tracking-widest text-sm disabled:opacity-50"
+                                >
+                                    {isPending ? (
+                                        <>
+                                            <Loader2 className="animate-spin" size={20} />
+                                            Analysing Message...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Transmit Securely <ArrowRight size={20} strokeWidth={3} />
+                                        </>
+                                    )}
+                                </button>
+                                {state?.error && (
+                                    <p className="text-red-500 text-xs font-bold text-center mt-4">Failed to transmit. Please verify your connection.</p>
                                 )}
-                            </button>
-                        </form>
+                            </form>
+                        )}
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
     );
 }

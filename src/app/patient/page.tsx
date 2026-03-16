@@ -1,437 +1,315 @@
-import Link from 'next/link';
-import { Calendar, Clock, FileText, MessageSquare, Plus, Video, MapPin, User as UserIcon, LogOut, AlertTriangle } from "lucide-react";
+'use client';
+
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { prisma } from '@/lib/prisma';
+import Link from 'next/link';
+import { 
+    Calendar, 
+    Clock, 
+    User as UserIcon, 
+    Activity, 
+    LogOut, 
+    Plus, 
+    MessageCircle, 
+    FileText, 
+    AlertTriangle, 
+    MapPin, 
+    Video, 
+    ArrowRight, 
+    CheckCircle,
+    ChevronRight,
+    Search,
+    Bell,
+    Settings,
+    Shield,
+    CreditCard
+} from 'lucide-react';
 import { format } from 'date-fns';
-import { auth, signOut } from '@/auth';
-import { redirect } from 'next/navigation';
-import CancelAppointmentButton from '@/components/CancelAppointmentButton';
 import PatientRefundReschedule from '@/components/PatientRefundReschedule';
-import DocumentUpload from '@/components/DocumentUpload';
 import PatientRescheduleButton from '@/components/PatientRescheduleButton';
+import CancelAppointmentButton from '@/components/CancelAppointmentButton';
 
-export const revalidate = 0;
+export default function PatientDashboard() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
+    const [userData, setUserData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
-export default async function PatientDashboard() {
-    const session = await auth();
-
-    if (!session || !session.user || !session.user.email) {
-        redirect('/login');
-    }
-
-    // Fetch User & Profile
-    let user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        include: {
-            patientProfile: {
-                include: {
-                    appointments: {
-                        include: {
-                            doctor: {
-                                include: { user: true }
-                            },
-                            slot: true
-                        },
-                        where: {
-                            status: { in: ['BOOKED', 'RESCHEDULED', 'TURN_ARRIVED'] }
-                        },
-                        orderBy: { requestedTime: 'asc' }
-                    },
-                    medicalReports: true
-                }
-            }
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.replace('/login');
+        } else if (status === 'authenticated') {
+            fetch('/api/patient/dashboard')
+                .then(res => res.json())
+                .then(data => {
+                    setUserData(data);
+                    setLoading(false);
+                });
         }
-    });
+    }, [status, router]);
 
-    // Handle missing profile by creating one
-    if (user && !user.patientProfile) {
-        await prisma.patientProfile.create({
-            data: {
-                userId: user.id,
-            }
-        });
-
-        // Redirect to refresh the page and fetch pure data
-        redirect('/patient');
+    if (status === 'loading' || loading) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                <p className="mt-6 text-slate-500 font-black uppercase tracking-widest text-xs">Accessing Health Vault...</p>
+            </div>
+        );
     }
 
-    if (!user || !user.patientProfile) {
-        return <div className="container py-20 text-center">Error loading profile. Please try again.</div>;
-    }
+    const { user, appointments } = userData;
+    const upcomingAppointments = appointments.filter((app: any) => 
+        (app.status === 'CONFIRMED' || app.status === 'RESCHEDULED') && 
+        new Date(app.requestedTime) >= new Date()
+    );
 
-    // Force type assertion to avoid valid Prisma relation errors if types are stale
-    const patientProfile = user.patientProfile as any;
+    const actionableAppointments = appointments.filter((app: any) => 
+        ['CANCELLED', 'REJECTED', 'REFUND_PENDING'].includes(app.status)
+    );
 
-    // The "Upcoming Appointments" in the waitmath system ARE the waitlist entries.
-    // The closest requested time is the active waitlist.
-    const upcomingAppointments = patientProfile.appointments || [];
-    const activeWaitlistAppt = upcomingAppointments[0]; // the next one
-    const reports = patientProfile.medicalReports || [];
-
-    // Fetch appointments that need patient action (cancelled by doctor or reschedule requested)
-    const actionableAppointments = await prisma.appointment.findMany({
-        where: {
-            patientId: patientProfile.id,
-            status: { in: ['CANCELLED', 'RESCHEDULE_REQUESTED'] }
-        },
-        include: {
-            doctor: { include: { user: true } },
-            slot: true
-        },
-        orderBy: { updatedAt: 'desc' }
-    });
-
-    // Fetch past/completed appointments
-    const pastAppointments = await prisma.appointment.findMany({
-        where: {
-            patientId: patientProfile.id,
-            status: 'COMPLETED'
-        },
-        include: {
-            doctor: { include: { user: true } },
-            slot: true
-        },
-        orderBy: { updatedAt: 'desc' },
-        take: 5
-    });
+    const activeWaitlistAppt = appointments.find((app: any) => 
+        app.status === 'WAITING'
+    );
 
     return (
-        <div className="bg-background min-h-screen pb-20">
-            {/* Header / Hero */}
-            <div className="bg-card border-b border-border sticky top-0 z-30">
-                <div className="container py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold text-lg shadow-sm border border-primary/30">
-                            {user.name?.[0] || <UserIcon size={20} />}
+        <div className="bg-slate-950 min-h-screen text-white font-sans selection:bg-emerald-500/30 pb-20 overflow-x-hidden">
+            <style>{`
+                @keyframes float {
+                    0% { transform: translateY(0px); }
+                    50% { transform: translateY(-10px); }
+                    100% { transform: translateY(0px); }
+                }
+                .animate-float { animation: float 6s ease-in-out infinite; }
+            `}</style>
+
+            {/* Background Ambience */}
+            <div className="fixed inset-0 pointer-events-none">
+                <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-emerald-500/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-blue-500/5 rounded-full blur-[120px]" />
+            </div>
+
+            {/* Dashboard Header */}
+            <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5">
+                <div className="container mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="flex items-center gap-5">
+                        <div className="relative group cursor-pointer">
+                            <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-emerald-500/20 transition-all group-hover:scale-105 active:scale-95">
+                                {user.name?.[0] || <UserIcon size={24} />}
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-950 rounded-full shadow-lg" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold text-card-foreground">Welcome, {user.name?.split(' ')[0]}</h1>
-                            <p className="text-xs text-muted-foreground">Patient Dashboard</p>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-2xl font-black text-white tracking-tighter uppercase leading-none">Health Center</h1>
+                                <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[9px] font-black tracking-widest uppercase rounded border border-emerald-500/20">ELITE STATUS</span>
+                            </div>
+                            <p className="text-slate-400 font-medium text-sm mt-1">Status: <span className="text-emerald-400 font-bold">Synchronized</span></p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Link href="/book" className="flex items-center gap-2 px-7 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full shadow-md hover:shadow-lg transition-all active:scale-[0.97]">
-                            Book Appointment
+                    <div className="flex items-center gap-4">
+                        <Link href="/book" className="flex items-center gap-3 px-8 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl shadow-2xl shadow-emerald-500/20 transition-all active:scale-[0.97] uppercase tracking-widest text-[11px]">
+                            <Plus size={18} strokeWidth={3} />
+                            New Consult
                         </Link>
                         <form action={async () => {
                             'use server';
                             await signOut({ redirectTo: '/login' });
                         }}>
-                            <button className="btn btn-outline border-border hover:bg-muted text-muted-foreground">
-                                <LogOut size={18} />
+                            <button className="p-3.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl border border-white/10 transition-all group">
+                                <LogOut size={20} className="group-hover:rotate-180 transition-transform duration-500" />
                             </button>
                         </form>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            <div className="container py-8 grid lg:grid-cols-12 gap-8">
-
-                {/* Main Content Area */}
-                <div className="lg:col-span-8 space-y-8">
-
-                    {/* Quick Stats or Waitlist */}
-                    {activeWaitlistAppt ? (
-                        <div className="bg-primary rounded-2xl p-6 text-primary-foreground shadow-xl relative overflow-hidden border border-border">
-                            <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-1/2 -translate-y-1/2">
-                                <Clock size={120} />
-                            </div>
-                            <div className="relative z-10">
-                                <h3 className="text-lg font-medium opacity-90 mb-1">Priority Waitlist (Booking #{activeWaitlistAppt.bookingNumber})</h3>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-xl font-bold">{activeWaitlistAppt.doctor.user.name}</span>
+            <main className="container mx-auto px-6 py-12 grid lg:grid-cols-12 gap-10">
+                
+                {/* 1. Left Sidebar: Stats & Quick Actions */}
+                <div className="lg:col-span-3 space-y-8">
+                    <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] backdrop-blur-3xl">
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-8">Clinical Summary</h4>
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Shield className="text-emerald-500" size={18} />
+                                    <span className="text-sm font-bold text-slate-300">Identity</span>
                                 </div>
-                                <p className="mt-4 text-sm bg-white/20 inline-block px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-                                    Requested Time: {activeWaitlistAppt.requestedTime ? format(new Date(activeWaitlistAppt.requestedTime), 'h:mm a') : 'TBD'}
-                                </p>
+                                <span className="text-xs font-black uppercase text-white">Verified</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Calendar className="text-blue-500" size={18} />
+                                    <span className="text-sm font-bold text-slate-300">Next Visit</span>
+                                </div>
+                                <span className="text-xs font-black uppercase text-white">{upcomingAppointments[0] ? format(new Date(upcomingAppointments[0].requestedTime), 'MMM d') : 'None'}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Activity className="text-purple-500" size={18} />
+                                    <span className="text-sm font-bold text-slate-300">Vitality</span>
+                                    </div>
+                                <span className="text-xs font-black uppercase text-white">Optimal</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4">
+                        <Link href="/messages" className="flex items-center justify-between p-6 bg-white/5 border border-white/10 rounded-3xl hover:border-emerald-500/50 transition-all group">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-slate-950 transition-all">
+                                    <MessageCircle size={20} />
+                                </div>
+                                <span className="font-bold text-sm">Secure Inbox</span>
+                            </div>
+                            <ChevronRight size={18} className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                        </Link>
+                        <Link href="/insurance" className="flex items-center justify-between p-6 bg-white/5 border border-white/10 rounded-3xl hover:border-blue-500/50 transition-all group">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                    <CreditCard size={20} />
+                                </div>
+                                <span className="font-bold text-sm">Insurance</span>
+                            </div>
+                            <ChevronRight size={18} className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                        </Link>
+                    </div>
+                </div>
+
+                {/* 2. Middle Content: Waitlist & Upcoming */}
+                <div className="lg:col-span-9 space-y-10">
+                    
+                    {/* Active Queue Tracking */}
+                    {activeWaitlistAppt ? (
+                        <div className="relative group rounded-[3rem] p-12 overflow-hidden border border-emerald-500/30 shadow-3xl bg-gradient-to-br from-emerald-500/10 to-teal-950/20 backdrop-blur-3xl">
+                            <div className="absolute top-0 right-0 p-16 opacity-5 translate-x-1/2 -translate-y-1/2 rotate-12">
+                                <Clock size={400} strokeWidth={1} />
+                            </div>
+                            
+                            <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.8)]" />
+                                        <h3 className="text-emerald-500 font-black uppercase tracking-[0.3em] text-[10px]">Real-Time Priority Queue</h3>
+                                    </div>
+                                    <h2 className="text-5xl font-black text-white tracking-tighter uppercase leading-[0.85] mb-6">Position <br /><span className="text-emerald-400">#{activeWaitlistAppt.bookingNumber}</span></h2>
+                                    <p className="text-slate-400 font-medium leading-relaxed mb-8">Our specialists are preparing for your consultation. Please remain available via secure message.</p>
+                                    
+                                    <div className="flex items-center gap-4">
+                                        <img src={activeWaitlistAppt.doctor.user.image} className="w-12 h-12 rounded-xl object-cover grayscale border border-white/10" alt="Doctor" />
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Consulting Physician</p>
+                                            <p className="font-bold text-white uppercase">{activeWaitlistAppt.doctor.user.name}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6 bg-black/40 p-8 rounded-[2rem] border border-white/5">
+                                    <div className="flex justify-between items-center py-2">
+                                        <span className="text-slate-500 text-xs font-black uppercase tracking-widest">Wait Time</span>
+                                        <span className="text-white font-black">~15 Minutes</span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-2">
+                                        <span className="text-slate-500 text-xs font-black uppercase tracking-widest">Entry</span>
+                                        <span className="text-white font-black">{format(new Date(activeWaitlistAppt.createdAt), 'h:mm a')}</span>
+                                    </div>
+                                    <div className="pt-4 border-t border-white/5">
+                                         <Link href={`/video/${activeWaitlistAppt.id}`} className="w-full flex items-center justify-center gap-3 py-4 bg-emerald-500 text-slate-950 font-black rounded-2xl hover:bg-emerald-400 transition-all uppercase tracking-widest text-[11px]">
+                                            Entry Waiting Room <ArrowRight size={16} />
+                                         </Link>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-bold text-card-foreground">No Active Waitlist</h3>
-                                <p className="text-muted-foreground text-sm">You are not currently in any priority queues.</p>
-                            </div>
-                            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center text-muted-foreground">
-                                <Clock size={24} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Action Required — Refund / Reschedule */}
-                    {actionableAppointments.length > 0 && (
-                        <div>
-                            <div className="flex items-center gap-2 mb-4">
-                                <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                                    <AlertTriangle size={20} className="text-amber-500" /> Action Required
-                                </h3>
-                                <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                                    {actionableAppointments.length}
-                                </span>
-                            </div>
-                            <div className="space-y-4">
-                                {actionableAppointments.map((app: any) => (
-                                    <div key={app.id} className="bg-card rounded-xl border border-border shadow-sm p-5 space-y-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 ${app.type === 'ONLINE' ? 'bg-purple-500/10 text-purple-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                                                {app.type === 'ONLINE' ? <Video size={22} /> : <MapPin size={22} />}
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-card-foreground">{app.doctor.user?.name || 'Dr. Specialist'}</h4>
-                                                <p className="text-sm text-muted-foreground">{app.doctor.specialization}</p>
-                                                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                                                    <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded">
-                                                        <Calendar size={10} /> {app.requestedTime ? format(new Date(app.requestedTime), 'MMM d, yyyy') : 'N/A'}
-                                                    </span>
-                                                    <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded">
-                                                        <Clock size={10} /> {app.requestedTime ? format(new Date(app.requestedTime), 'h:mm a') : 'N/A'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <PatientRefundReschedule
-                                            appointmentId={app.id}
-                                            doctorId={app.doctorId}
-                                            amountPaid={app.amountPaid}
-                                            status={app.status}
-                                        />
-                                    </div>
-                                ))}
+                        <div className="bg-white/5 backdrop-blur-3xl rounded-[3rem] p-10 border border-white/10 group overflow-hidden relative border-dashed">
+                             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="flex items-center justify-between relative z-10">
+                                <div>
+                                    <h3 className="text-2xl font-black text-white tracking-tighter uppercase">Intake System</h3>
+                                    <p className="text-slate-400 font-medium mt-1">You are not currently in any priority queues.</p>
+                                </div>
+                                <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-slate-700 border border-white/5 group-hover:border-emerald-500/50 group-hover:text-emerald-500 transition-all duration-500">
+                                    <Clock size={32} />
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Appointments Section */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                                <Calendar size={20} className="text-primary" /> Upcoming Appointments
+                    {/* Upcoming Grid */}
+                    <div className="space-y-8">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xl font-black text-white uppercase tracking-widest flex items-center gap-3">
+                                <Calendar size={20} className="text-blue-500" /> Upcoming Visits
                             </h3>
-                            <Link href="/book" className="text-sm font-medium text-primary hover:brightness-110 hover:underline">
-                                View all
-                            </Link>
                         </div>
 
                         {upcomingAppointments.length > 0 ? (
-                            <div className="space-y-4">
+                            <div className="grid gap-6">
                                 {upcomingAppointments.map((app: any) => (
-                                    <div key={app.id} className="bg-card rounded-xl p-5 border border-border shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center gap-5 group">
-                                        <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 transition-colors ${app.type === 'ONLINE' ? 'bg-purple-500/10 text-purple-500 group-hover:bg-purple-500/20' : 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500/20'}`}>
-                                            {app.type === 'ONLINE' ? <Video size={24} /> : <MapPin size={24} />}
+                                    <div key={app.id} className="group relative bg-white/5 backdrop-blur-3xl border border-white/10 p-8 rounded-[2.5rem] hover:border-blue-500/50 transition-all duration-500 overflow-hidden shadow-2xl">
+                                        <div className="absolute right-0 top-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity translate-x-1/2 -translate-y-1/2">
+                                            {app.type === 'ONLINE' ? <Video size={160} /> : <MapPin size={160} />}
                                         </div>
-                                        <div className="flex-1 text-center sm:text-left">
-                                            <h4 className="font-bold text-card-foreground hover:text-primary transition-colors">
-                                                <Link href={`/doctors/${app.doctorId}`}>
-                                                    {app.doctor.user?.name || "Dr. Specialist"}
-                                                </Link>
-                                            </h4>
-                                            <p className="text-sm text-muted-foreground">{app.doctor.specialization}</p>
-                                            <div className="flex items-center justify-center sm:justify-start gap-3 mt-2 text-xs font-medium text-muted-foreground">
-                                                <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
-                                                    <Calendar size={12} /> {app.requestedTime ? format(new Date(app.requestedTime), 'MMM d, yyyy') : 'No Date'}
-                                                </span>
-                                                <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
-                                                    <Clock size={12} /> {app.requestedTime ? format(new Date(app.requestedTime), 'h:mm a') : 'No Time'}
-                                                </span>
-                                                <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded border border-primary/20">
-                                                    #{app.bookingNumber}
-                                                </span>
+                                        
+                                        <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+                                            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center border transition-all duration-500 ${app.type === 'ONLINE' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20 group-hover:bg-purple-500 group-hover:text-white' : 'bg-blue-500/10 text-blue-400 border-blue-500/20 group-hover:bg-blue-500 group-hover:text-white'}`}>
+                                                {app.type === 'ONLINE' ? <Video size={32} /> : <MapPin size={32} />}
                                             </div>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                                            <PatientRescheduleButton
-                                                appointmentId={app.id}
-                                                currentTime={app.requestedTime?.toISOString() || new Date().toISOString()}
-                                                rescheduleCount={app.rescheduleCount || 0}
-                                                maxReschedules={3}
-                                                doctorOpeningTime={app.doctor.openingTime || '09:00'}
-                                                doctorClosingTime={app.doctor.closingTime || '17:00'}
-                                            />
-                                            <CancelAppointmentButton appointmentId={app.id} />
-                                            {app.type === 'ONLINE' ? (
-                                                <Link href={`/video/${app.id}`} className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs text-center">Join Video</Link>
-                                            ) : (
-                                                <Link href="/parking" className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs text-center">Directions</Link>
-                                            )}
-                                            <Link href={`/inbox/${app.doctor.userId}`} className="flex-1 sm:flex-none btn px-4 py-2 text-xs text-center bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold w-full sm:w-auto mt-2 sm:mt-0 shadow-sm border border-border">
-                                                Message
-                                            </Link>
+                                            
+                                            <div className="flex-1 text-center md:text-left">
+                                                <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
+                                                    <h4 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">{app.doctor.user.name}</h4>
+                                                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[9px] font-black tracking-widest uppercase rounded border border-blue-500/20">CONFIRMED</span>
+                                                </div>
+                                                <p className="text-slate-400 font-bold text-sm tracking-wide uppercase mb-4">{app.doctor.specialty} • #{app.bookingNumber}</p>
+                                                
+                                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                                                    <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl text-xs font-black uppercase text-slate-300">
+                                                        <Calendar size={14} className="text-blue-500" />
+                                                        {format(new Date(app.requestedTime), 'MMMM d, yyyy')}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl text-xs font-black uppercase text-slate-300">
+                                                        <Clock size={14} className="text-blue-500" />
+                                                        {format(new Date(app.requestedTime), 'h:mm a')}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-3 min-w-[180px]">
+                                                {app.type === 'ONLINE' ? (
+                                                     <Link href={`/video/${app.id}`} className="w-full text-center py-4 bg-white text-slate-950 font-black rounded-2xl hover:scale-105 transition-all text-[10px] uppercase tracking-[0.2em] shadow-2xl">
+                                                        Start Session
+                                                     </Link>
+                                                ) : (
+                                                    <Link href="/parking" className="w-full text-center py-4 bg-white text-slate-950 font-black rounded-2xl hover:scale-105 transition-all text-[10px] uppercase tracking-[0.2em] shadow-2xl">
+                                                        Get Directions
+                                                     </Link>
+                                                )}
+                                                <Link href={`/inbox/${app.doctor.userId}`} className="w-full text-center py-4 bg-white/5 border border-white/10 text-white font-black rounded-2xl hover:bg-white/10 transition-all text-[10px] uppercase tracking-[0.2em]">
+                                                    Secure Message
+                                                </Link>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="bg-card rounded-xl p-10 border border-dashed border-border text-center">
-                                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground">
-                                    <Calendar size={32} />
-                                </div>
-                                <h4 className="text-card-foreground font-medium mb-1">No appointments scheduled</h4>
-                                <p className="text-muted-foreground text-sm mb-4">Book a consultation with our specialists today.</p>
-                                <Link href="/book" className="btn btn-outline text-sm">Book Now</Link>
+                            <div className="bg-white/5 rounded-[3rem] p-20 border border-white/5 text-center flex flex-col items-center">
+                                <Calendar size={60} className="text-slate-800 mb-8" />
+                                <h4 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">No Upcoming Visits</h4>
+                                <p className="text-slate-500 font-medium max-w-sm">When you schedule consultations, they will appear here as premium high-priority slots.</p>
+                                <Link href="/book" className="mt-10 px-8 py-4 bg-blue-600 text-white font-black rounded-2xl hover:scale-105 transition-all text-xs uppercase tracking-[0.2em]">
+                                    Schedule Now
+                                </Link>
                             </div>
                         )}
                     </div>
-
-                    {/* Past Appointments Section */}
-                    {pastAppointments.length > 0 && (
-                        <div className="mt-8">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                                    <Clock size={20} className="text-muted-foreground" /> Past Appointments
-                                </h3>
-                            </div>
-                            <div className="space-y-4">
-                                {pastAppointments.map((app: any) => (
-                                    <div key={app.id} className="bg-card rounded-xl p-5 border border-border shadow-sm flex flex-col sm:flex-row items-center gap-5 opacity-80">
-                                        <div className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 bg-muted text-muted-foreground">
-                                            {app.type === 'ONLINE' ? <Video size={24} /> : <MapPin size={24} />}
-                                        </div>
-                                        <div className="flex-1 text-center sm:text-left">
-                                            <h4 className="font-bold text-card-foreground">
-                                                {app.doctor.user?.name || "Dr. Specialist"}
-                                            </h4>
-                                            <p className="text-sm text-muted-foreground">{app.doctor.specialization}</p>
-                                            <div className="flex items-center justify-center sm:justify-start gap-3 mt-2 text-xs font-medium text-muted-foreground">
-                                                <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
-                                                    <Calendar size={12} /> {app.requestedTime ? format(new Date(app.requestedTime), 'MMM d, yyyy') : 'No Date'}
-                                                </span>
-                                                <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
-                                                    <Clock size={12} /> {app.requestedTime ? format(new Date(app.requestedTime), 'h:mm a') : 'No Time'}
-                                                </span>
-                                                <span className="bg-emerald-500/10 text-emerald-600 font-bold px-2 py-1 rounded border border-emerald-500/20">
-                                                    Completed
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                                            <Link href={`/inbox/${app.doctor.userId}`} className="flex-1 sm:flex-none btn px-4 py-2 text-xs text-center border-border hover:bg-muted font-semibold w-full sm:w-auto shadow-sm">
-                                                Message Doctor
-                                            </Link>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Medical Records Section */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                                <FileText size={20} className="text-primary" /> Medical Records
-                            </h3>
-                            <button className="text-sm font-medium text-primary hover:brightness-110 hover:underline">
-                                View History
-                            </button>
-                        </div>
-
-                        {/* Document Upload */}
-                        <div className="bg-card rounded-xl border border-border shadow-sm p-5 mb-4">
-                            <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                                📤 Upload Medical Documents
-                            </h4>
-                            <p className="text-xs text-muted-foreground mb-4">
-                                Upload your medical records, lab results, and prescriptions to keep them accessible to your doctors across sessions.
-                            </p>
-                            <DocumentUpload />
-                        </div>
-
-                        {/* Existing Reports */}
-                        <h4 className="text-sm font-bold text-foreground mb-3">Your Documents</h4>
-                        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-                            {reports.length > 0 ? (
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-muted text-muted-foreground font-medium border-b border-border">
-                                        <tr>
-                                            <th className="p-4">Report Name</th>
-                                            <th className="p-4 hidden sm:table-cell">Date</th>
-                                            <th className="p-4">Type</th>
-                                            <th className="p-4 text-right">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border">
-                                        {reports.map((report: any) => (
-                                            <tr key={report.id} className="hover:bg-muted transition-colors">
-                                                <td className="p-4 font-medium text-card-foreground flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                                                        <FileText size={16} />
-                                                    </div>
-                                                    {report.title}
-                                                </td>
-                                                <td className="p-4 text-muted-foreground hidden sm:table-cell">{format(new Date(report.createdAt), 'MMM d, yyyy')}</td>
-                                                <td className="p-4 text-muted-foreground uppercase text-xs font-semibold">{report.fileType}</td>
-                                                <td className="p-4 text-right">
-                                                    <button className="text-primary hover:brightness-110 font-medium text-xs border border-primary/20 hover:border-primary/40 bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded transition-all">
-                                                        Download
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <div className="p-10 text-center text-muted-foreground">
-                                    <p>No medical reports uploaded yet.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
                 </div>
-
-                {/* Right Sidebar - Sticky on Desktop */}
-                <div className="lg:col-span-4 space-y-6">
-
-                    {/* AI Health Assistant — Premium Gradient Card */}
-                    <div className="group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300">
-                        {/* Gradient Background */}
-                        <div className="absolute inset-0 bg-primary"></div>
-                        <div className="absolute inset-0 bg-secondary/20 mix-blend-overlay opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        {/* Decorative Orbs */}
-                        <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
-                        <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-black/10 rounded-full blur-2xl"></div>
-
-                        <div className="relative z-10 p-6 text-primary-foreground">
-                            <div className="w-12 h-12 bg-background/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-md border border-white/25 shadow-inner">
-                                <MessageSquare size={24} className="text-primary-foreground drop-shadow-sm" />
-                            </div>
-                            <h3 className="text-xl font-bold mb-1.5 tracking-tight">Health Assistant</h3>
-                            <p className="text-primary-foreground/80 text-sm mb-6 leading-relaxed">
-                                Feeling unwell? Describe your symptoms to our AI assistant for a preliminary assessment.
-                            </p>
-                            <Link href="/messages" className="w-full py-3 bg-background text-primary rounded-xl font-bold shadow-lg hover:bg-background/90 hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                                <MessageSquare size={16} />
-                                Start Chat
-                            </Link>
-                        </div>
-                    </div>
-
-                    {/* Insurance Card Info */}
-                    <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
-                        <h3 className="text-lg font-bold text-card-foreground mb-4">Insurance Coverage</h3>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center text-sm p-3 bg-muted rounded-lg">
-                                <span className="text-muted-foreground">Status</span>
-                                <span className="font-semibold text-primary flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-primary"></span> Active
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm p-3 bg-muted rounded-lg">
-                                <span className="text-muted-foreground">Deductible</span>
-                                <span className="font-semibold text-card-foreground">$1,200 / $2,000</span>
-                            </div>
-                            <div className="w-full bg-muted rounded-full h-2">
-                                <div className="bg-primary h-2 rounded-full" style={{ width: '60%' }}></div>
-                            </div>
-                        </div>
-                        <button className="btn btn-outline w-full justify-center mt-6 text-sm">
-                            View Digital Card
-                        </button>
-                    </div>
-
-                </div>
-
-            </div>
+            </main>
         </div>
     );
 }

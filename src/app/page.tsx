@@ -2,7 +2,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShieldCheck, Stethoscope, Clock, UserPlus, Search, ArrowRight, Video } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import Navbar from '@/components/Navbar';
 import Hero from "@/components/themes/hero/Hero"; // Ensure fresh data
 import Services from "@/components/themes/services/Services";
 import Doctors from "@/components/themes/doctors/Doctors";
@@ -50,8 +49,6 @@ export default async function Home() {
   return (
     <div className="min-h-screen font-sans text-foreground">
 
-      {/* 1. Navbar */}
-      <Navbar transparent={true} />
 
       {/* 2. Dynamic Hero Section */}
       <Hero />

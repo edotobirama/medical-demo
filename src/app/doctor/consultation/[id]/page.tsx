@@ -131,13 +131,9 @@ async function ConsultationFetcher({ id }: { id: string }) {
                                         {appointment.status}
                                     </span>
                                 </p>
-
                                 {appointment.type === 'ONLINE' && (
                                     <div className="mt-4 space-y-2">
                                         <CallPatientButton appointmentId={appointment.id} />
-                                        <a href={`/video/${appointment.id}`} target="_blank" className="w-full bg-neutral-700 hover:bg-neutral-600 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-transform hover:scale-[1.02]">
-                                            <Video size={18} /> Rejoin Video Room
-                                        </a>
                                     </div>
                                 )}
                             </div>

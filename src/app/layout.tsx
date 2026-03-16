@@ -16,11 +16,12 @@ const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space
 const quicksand = Quicksand({ subsets: ["latin"], variable: "--font-quicksand" });
 
 export const metadata: Metadata = {
-  title: "MediCare Plus | Advanced Medical Care",
-  description: "Premium healthcare services including digital consultations and verified specialists.",
+  title: "Grandview Medical Center | Excellence in Healthcare",
+  description: "Experience world-class healthcare at Grandview Medical Center. Your health, our priority.",
 };
 
 import { auth } from "@/auth";
+import Navbar from "@/components/Navbar";
 
 export default async function RootLayout({
   children,
@@ -33,6 +34,7 @@ export default async function RootLayout({
       <body className={`${inter.variable} ${playfair.variable} ${lato.variable} ${spaceGrotesk.variable} ${quicksand.variable} font-sans`}>
         <ThemeWrapper>
           <Providers session={session}>
+            <Navbar />
             <div className="flex flex-col min-h-screen">
               <main className="flex-grow">
                 {children}
