@@ -70,25 +70,32 @@ export async function GET(req: Request) {
 
 // AI Translation helper (mock + real OpenAI support)
 async function translateToEnglish(text: string, fromLang: string): Promise<string> {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env['GEMINI-API-KEY'] || process.env.GEMINI_API_KEY;
 
-    if (apiKey && apiKey.startsWith('sk-')) {
+    if (apiKey) {
         try {
-            const OpenAI = (await import('openai')).default;
-            const openai = new OpenAI({ apiKey });
-            const completion = await openai.chat.completions.create({
-                messages: [
-                    {
-                        role: 'system',
-                        content: `You are a medical translator. Translate the following text from ${fromLang} to English. Preserve medical terminology accurately. Only output the translation, nothing else.`
-                    },
-                    { role: 'user', content: text }
-                ],
-                model: 'gpt-3.5-turbo',
+            const systemPrompt = `You are a medical translator. Translate the following text from ${fromLang} to English. Preserve medical terminology accurately. Only output the translation, nothing else.`;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    contents: [{ role: 'user', parts: [{ text }] }]
+                })
             });
-            return completion.choices[0].message.content || text;
+
+            if (!response.ok) {
+                console.error("Gemini Translation Error:", await response.text());
+                throw new Error("Gemini API request failed");
+            }
+
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || text;
         } catch (e) {
-            console.error('Translation error:', e);
+            console.error('Gemini Translation error:', e);
             return `[Translation pending] ${text}`;
         }
     }

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
 
 // This acts as a fallback diagnostic engine if no API key is present
 const MOCK_DIAGNOSTIC_FLOW = [
@@ -14,22 +13,42 @@ export async function POST(request: Request) {
         const { messages } = await request.json();
         const userMessage = messages[messages.length - 1].content;
 
-        // 1. Check for OpenAI Key
-        const apiKey = process.env.OPENAI_API_KEY;
+        // 1. Check for Gemini Key
+        const apiKey = process.env['GEMINI-API-KEY'] || process.env.GEMINI_API_KEY;
 
-        if (apiKey && apiKey.startsWith('sk-')) {
-            // REAL LLM CALL
-            const openai = new OpenAI({ apiKey });
-            const completion = await openai.chat.completions.create({
-                messages: [
-                    { role: "system", content: "You are an advanced AI medical assistant for NovaCare. Your goal is to ask clarifying diagnostic questions to the patient one by one. Be professional, empathetic, and concise. Do NOT provide a medical diagnosis, but gather symptoms to prepare for a doctor's visit. Keep responses short (under 50 words)." },
-                    ...messages
-                ],
-                model: "gpt-3.5-turbo",
+        if (apiKey) {
+            // REAL LLM CALL via Gemini
+            const systemPrompt = "You are an advanced AI medical assistant for NovaCare. Your goal is to ask clarifying diagnostic questions to the patient one by one. Be professional, empathetic, and concise. Do NOT provide a medical diagnosis, but gather symptoms to prepare for a doctor's visit. Keep responses short (under 50 words).";
+            
+            // Format messages for Gemini
+            // Gemini uses "user" and "model" roles
+            const geminiMessages = messages.map((m: any) => ({
+                role: m.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: m.content }]
+            }));
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    contents: geminiMessages
+                })
             });
+
+            if (!response.ok) {
+                console.error("Gemini API Error:", await response.text());
+                throw new Error("Gemini API request failed");
+            }
+
+            const data = await response.json();
+            const replyContent = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having trouble understanding right now.";
+
             return NextResponse.json({
                 role: 'assistant',
-                content: completion.choices[0].message.content
+                content: replyContent
             });
         } else {
             // MOCK FALLBACK
@@ -63,6 +82,6 @@ export async function POST(request: Request) {
 
     } catch (error) {
         console.error("Chat API Error:", error);
-        return NextResponse.json({ error: "Failed to process message" }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to process message" }, { status: 500 });
     }
 }

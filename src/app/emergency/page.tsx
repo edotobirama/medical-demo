@@ -2,70 +2,122 @@
 
 import { Clock, Ambulance, Phone, AlertTriangle, HeartPulse, Shield, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function EmergencyPage() {
     return (
         <div className="min-h-screen bg-background">
-            <section className="relative py-20 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 via-red-500/10 to-transparent"></div>
-                <div className="container mx-auto px-6 relative z-10">
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="w-16 h-16 bg-orange-500/15 rounded-2xl flex items-center justify-center animate-pulse">
-                            <Clock size={32} className="text-orange-500" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-semibold text-orange-400 uppercase tracking-wider">Always Ready</p>
-                            <h1 className="text-4xl lg:text-5xl font-bold text-foreground">24/7 Emergency</h1>
-                        </div>
-                    </div>
-                    <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-                        Our emergency department is staffed around the clock with trauma surgeons, critical care specialists, and emergency physicians, ensuring rapid response when minutes matter most.
-                    </p>
+            {/* Critical Hero */}
+            <section className="relative h-[80vh] flex items-center overflow-hidden">
+                <div className="absolute inset-0 z-0">
+                    <Image 
+                        src="/images/services/emergency_premium.png" 
+                        alt="24/7 Emergency" 
+                        fill 
+                        className="object-cover scale-105"
+                        priority
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent z-10"></div>
+                </div>
 
-                    {/* Emergency Hotline */}
-                    <div className="mt-8 inline-flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-6 py-4">
-                        <Phone size={24} className="text-red-500" />
-                        <div>
-                            <p className="text-sm text-muted-foreground">Emergency Hotline</p>
-                            <p className="text-2xl font-bold text-red-500">911</p>
+                <div className="container mx-auto px-6 relative z-20">
+                    <div className="max-w-2xl">
+                        <div className="flex items-center gap-4 mb-6 animate-in fade-in slide-in-from-left duration-700">
+                            <div className="w-16 h-16 bg-orange-600/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-orange-600/30 animate-pulse">
+                                <Clock size={32} className="text-orange-500" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-orange-500 uppercase tracking-[0.2em]">Seconds Count</p>
+                                <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter">24/7 <span className="text-orange-500">Emergency</span></h1>
+                            </div>
+                        </div>
+                        <p className="text-xl text-slate-300 mb-8 leading-relaxed font-medium animate-in fade-in slide-in-from-left duration-1000 delay-200">
+                            Elite trauma response units ready at a moment's notice. Our level-1 trauma facility is equipped with specialized surgical teams and rapid-response technology to save lives when it matters most.
+                        </p>
+                        
+                        <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom duration-700 delay-500">
+                            <a href="tel:911" className="px-10 py-5 bg-orange-600 text-white font-black rounded-2xl hover:bg-orange-700 transition-all shadow-2xl shadow-orange-600/40 flex items-center justify-center gap-3 text-lg group">
+                                <Phone size={24} className="group-hover:animate-bounce" /> Call 911 Now
+                            </a>
+                            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-4">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span className="text-white font-bold whitespace-nowrap">Average Wait: &lt; 5 Mins</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section className="container mx-auto px-6 py-16">
-                <h2 className="text-2xl font-bold text-foreground mb-8">Emergency Capabilities</h2>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Emergency Grid */}
+            <section className="container mx-auto px-6 py-24">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+                    <div>
+                        <h2 className="text-4xl font-bold text-foreground mb-4 font-heading">Battle-Tested Capabilities</h2>
+                        <p className="text-muted-foreground max-w-xl text-lg">Our infrastructure is designed for speed, safety, and superior clinical outcomes in the most demanding situations.</p>
+                    </div>
+                    <div className="flex gap-4">
+                        <div className="flex flex-col items-center p-4 bg-orange-500/5 rounded-2xl border border-orange-500/10 min-w-[120px]">
+                            <span className="text-2xl font-black text-orange-600">Level 1</span>
+                            <span className="text-xs font-bold text-muted-foreground uppercase">Trauma Center</span>
+                        </div>
+                        <div className="flex flex-col items-center p-4 bg-orange-500/5 rounded-2xl border border-orange-500/10 min-w-[120px]">
+                            <span className="text-2xl font-black text-orange-600">30+</span>
+                            <span className="text-xs font-bold text-muted-foreground uppercase">ER Bays</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {[
-                        { icon: Ambulance, title: 'Ambulance Services', desc: 'GPS-tracked ambulances with paramedic teams for rapid patient transport.' },
-                        { icon: AlertTriangle, title: 'Trauma Center', desc: 'Level-1 trauma facility equipped for severe injuries and multi-system trauma.' },
-                        { icon: HeartPulse, title: 'Cardiac Emergency', desc: 'Dedicated chest pain unit with immediate access to catheterization lab.' },
-                        { icon: Clock, title: 'Triage System', desc: 'Computerized triage for rapid patient assessment and priority-based treatment.' },
-                        { icon: Shield, title: 'Pediatric Emergency', desc: 'Child-friendly emergency unit staffed with pediatric emergency specialists.' },
-                        { icon: HeartPulse, title: 'Stroke Response', desc: 'Code Stroke protocol with CT imaging and neurology consult within minutes.' },
+                        { icon: Ambulance, title: 'Smart Ambulance Fleet', desc: 'GPS-synced mobile ICUs with advanced telemetry for en-route stabilization.' },
+                        { icon: AlertTriangle, title: 'Rapid Trauma Unit', desc: 'Multidisciplinary teams including neurosurgeons and orthopedic leads on-site 24/7.' },
+                        { icon: HeartPulse, title: 'Chest Pain Center', desc: 'Direct-to-lab protocols for cardiac arrests, bypassing standard triage for speed.' },
+                        { icon: Clock, title: 'AI Triage System', desc: 'Digital prioritization based on vital signs to ensure critical patients are seen first.' },
+                        { icon: Shield, title: 'Pediatric ER Zone', desc: 'A separate, specialized wing for children with pediatric trauma experts.' },
+                        { icon: HeartPulse, title: 'Code Stroke Response', desc: 'Integrated imaging and neurology consultation initiated within 10 minutes.' },
                     ].map((s, i) => (
-                        <div key={i} className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg hover:border-orange-500/20 transition-all group">
-                            <div className="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-500/20 transition-colors">
-                                <s.icon size={24} className="text-orange-500" />
+                        <div key={i} className="group relative bg-card border border-border p-8 rounded-[2rem] hover:border-orange-500/30 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/5 overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl group-hover:bg-orange-500/10 transition-colors"></div>
+                            <div className="w-14 h-14 bg-orange-600/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-600 group-hover:text-white transition-all duration-500">
+                                <s.icon size={28} className="text-orange-600 group-hover:text-white" />
                             </div>
-                            <h3 className="text-lg font-bold text-card-foreground mb-2">{s.title}</h3>
-                            <p className="text-muted-foreground text-sm leading-relaxed">{s.desc}</p>
+                            <h3 className="text-2xl font-bold text-card-foreground mb-3">{s.title}</h3>
+                            <p className="text-muted-foreground leading-relaxed font-medium">{s.desc}</p>
                         </div>
                     ))}
                 </div>
             </section>
 
-            <section className="container mx-auto px-6 pb-20">
-                <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-2xl p-10 text-center text-white">
-                    <h2 className="text-3xl font-bold mb-4">In an Emergency?</h2>
-                    <p className="text-white/80 mb-6 max-w-lg mx-auto">Call our emergency hotline immediately or visit our emergency department. We are open 24 hours, 7 days a week.</p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <a href="tel:911" className="inline-flex items-center gap-2 px-8 py-3 bg-white text-red-600 font-bold rounded-xl hover:bg-white/90 transition-all">
-                            <Phone size={18} /> Call 911
-                        </a>
-                        <Link href="/book" className="inline-flex items-center gap-2 px-8 py-3 bg-white/20 text-white border border-white/30 font-bold rounded-xl hover:bg-white/30 transition-all">
-                            Book Appointment <ArrowRight size={18} />
-                        </Link>
+            {/* Premium CTA */}
+            <section className="container mx-auto px-6 pb-24">
+                <div className="relative rounded-[3.5rem] overflow-hidden group">
+                    <div className="absolute inset-0">
+                        <Image 
+                            src="/images/services/emergency_premium.png" 
+                            alt="ER Background" 
+                            fill 
+                            className="object-cover transition-transform duration-[2000ms] group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-orange-600/40 via-transparent to-black/80"></div>
+                    </div>
+                    
+                    <div className="relative z-10 p-16 lg:p-28 text-center">
+                        <div className="inline-block px-4 py-1.5 bg-orange-600 text-white rounded-full text-sm font-black uppercase tracking-widest mb-8 shadow-lg animate-pulse">
+                            Immediate Action Required?
+                        </div>
+                        <h2 className="text-5xl lg:text-7xl font-black text-white mb-8 tracking-tighter">Trust the <span className="italic text-orange-500 underline decoration-orange-500/30 underline-offset-8">Fastest</span> Response</h2>
+                        <p className="text-slate-200 mb-12 max-w-3xl mx-auto text-xl leading-relaxed font-medium">
+                            Located conveniently at the heart of the city with dedicated helicopter access. We don't just treat emergencies; we master them.
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-6">
+                            <a href="tel:911" className="inline-flex items-center gap-3 px-12 py-6 bg-orange-600 text-white font-black rounded-[2rem] hover:scale-105 transition-all shadow-2xl shadow-orange-600/50 text-xl">
+                                <Phone size={28} /> Emergency 911
+                            </a>
+                            <Link href="/book" className="inline-flex items-center gap-3 px-10 py-6 bg-white/10 text-white border-2 border-white/20 backdrop-blur-md font-bold rounded-[2rem] hover:bg-white/20 transition-all text-xl">
+                                Book Clinic Visit <ArrowRight size={24} />
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </section>
