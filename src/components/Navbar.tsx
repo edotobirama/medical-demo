@@ -6,14 +6,11 @@ import { useState, useEffect } from "react";
 import clsx from "clsx";
 import { useTheme } from "@/context/ThemeContext";
 import { useSession, signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
 
 export default function Navbar({ transparent = false }: { transparent?: boolean }) {
     const [scrolled, setScrolled] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const { data: session } = useSession();
-    const pathname = usePathname();
-    const { theme } = useTheme();
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -21,12 +18,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    // Hide Navbar on authentication pages
-    if (pathname === '/login' || pathname === '/register') return null;
-
-    // Auto-transparency logic for premium landing pages
-    const isPremiumLanding = pathname === '/' || pathname?.startsWith('/services/');
-    const effectivelyTransparent = transparent || isPremiumLanding;
+    const { theme } = useTheme();
 
     // Define which themes have dark backgrounds (requiring white text)
     const darkHeroThemes = ['modern', 'cyberpunk'];
@@ -35,7 +27,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
     // Text color logic:  
     // If transparent & not scrolled -> White (if Dark Hero) OR Dark (if Light Hero)
     // Otherwise -> Foreground/Muted
-    const isTransparentState = effectivelyTransparent && !scrolled;
+    const isTransparentState = transparent && !scrolled;
 
     const getTransparentTextColor = () => isDarkHero ? "text-white" : "text-slate-900";
     const getTransparentBrandColor = () => isDarkHero ? "text-white" : "text-primary";

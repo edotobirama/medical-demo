@@ -2,119 +2,102 @@
 
 import { HeartPulse, Activity, Stethoscope, Shield, Phone, Clock, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function CardiologyPage() {
     return (
-        <div className="bg-slate-950 min-h-screen text-white font-sans selection:bg-red-500/30">
-            {/* Hero Section */}
-            <section className="relative h-[85vh] flex items-center overflow-hidden">
+        <div className="min-h-screen bg-background">
+            {/* Hero */}
+            <section className="relative h-[70vh] flex items-center overflow-hidden">
                 <div className="absolute inset-0 z-0">
-                    <img 
+                    <Image 
                         src="/images/services/cardiology_premium.png" 
                         alt="Cardiology Center" 
-                        className="w-full h-full object-cover scale-105"
+                        fill 
+                        className="object-cover"
+                        priority
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent z-10"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-10"></div>
                 </div>
 
                 <div className="container mx-auto px-6 relative z-20">
-                    <div className="max-w-3xl">
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center shadow-xl shadow-red-600/20">
-                                <HeartPulse size={32} className="text-white" />
+                    <div className="max-w-2xl">
+                        <div className="flex items-center gap-4 mb-6 animate-in fade-in slide-in-from-left duration-700">
+                            <div className="w-16 h-16 bg-red-500/15 backdrop-blur-md rounded-2xl flex items-center justify-center border border-red-500/20">
+                                <HeartPulse size={32} className="text-red-500" />
                             </div>
-                            <div className="h-px w-12 bg-red-600/50"></div>
-                            <p className="text-xs font-black text-red-500 uppercase tracking-[0.3em]">Cardiovascular Excellence</p>
+                            <div>
+                                <p className="text-sm font-semibold text-red-500 uppercase tracking-widest">Center of Excellence</p>
+                                <h1 className="text-5xl lg:text-7xl font-bold text-foreground tracking-tight">Cardiology <span className="text-red-500">Center</span></h1>
+                            </div>
                         </div>
-                        
-                        <h1 className="text-6xl lg:text-8xl font-black text-white tracking-tighter mb-8 uppercase leading-[0.9]">
-                            The Heart <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-400">of Grandview</span>
-                        </h1>
-                        
-                        <p className="text-xl text-slate-400 mb-12 leading-relaxed max-w-xl font-medium">
-                            Setting the global standard in precision cardiac care. Our elite faculty utilizes revolutionary technology to safeguard your most vital organ.
+                        <p className="text-xl text-muted-foreground mb-8 leading-relaxed animate-in fade-in slide-in-from-left duration-1000 delay-200">
+                            Pioneering the future of heart health. Our cardiology department combines world-class expertise with revolutionary technology to provide comprehensive cardiac solutions.
                         </p>
-                        
-                        <div className="flex flex-wrap gap-6">
-                            <Link href="/book" className="px-10 py-5 bg-red-600 text-white font-black rounded-2xl hover:bg-red-500 transition-all shadow-2xl shadow-red-600/30 flex items-center gap-3 uppercase tracking-wider text-sm">
-                                Consult Specialist <ArrowRight size={20} strokeWidth={3} />
+                        <div className="flex gap-4 animate-in fade-in slide-in-from-bottom duration-700 delay-500">
+                            <Link href="/book" className="px-8 py-4 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 flex items-center gap-2">
+                                Book a Specialist <ArrowRight size={20} />
                             </Link>
-                            <div className="flex items-center gap-3 px-6 py-4 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10">
-                                <Phone className="text-red-500" size={20} />
-                                <span className="font-bold text-sm tracking-widest">+1 (800) CARDIO</span>
-                            </div>
                         </div>
                     </div>
-                </div>
-                
-                {/* Scroll Indicator */}
-                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 opacity-30">
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em]">Discover More</p>
-                    <div className="w-px h-12 bg-gradient-to-b from-red-600 to-transparent"></div>
                 </div>
             </section>
 
-            {/* Advanced Diagnostics Grid */}
-            <section className="container mx-auto px-6 py-32 relative">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-600/5 rounded-full blur-[150px] -z-10"></div>
-                
-                <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-20 gap-10">
-                    <div className="max-w-2xl">
-                        <h2 className="text-4xl lg:text-5xl font-black text-white mb-6 uppercase tracking-tighter">Elite Cardiac <br />Infrastructure</h2>
-                        <p className="text-slate-400 text-lg font-medium leading-relaxed">Our facility integrates AI-driven diagnostics with world-renowned surgical expertise to provide a continuum of care for all cardiac conditions.</p>
+            {/* Services Grid */}
+            <section className="container mx-auto px-6 py-24">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+                    <div>
+                        <h2 className="text-3xl font-bold text-foreground mb-4">Precision Cardiac Care</h2>
+                        <p className="text-muted-foreground max-w-xl">We offer a full spectrum of diagnostic and therapeutic cardiology services using the most advanced medical protocols.</p>
                     </div>
-                    <div className="flex flex-col items-end gap-3 text-right">
-                        <div className="text-5xl font-black text-red-500 tracking-tighter tracking-widest">99.2%</div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Clinical Success Rate</p>
+                    <div className="flex gap-2">
+                        <div className="px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-sm font-bold border border-red-500/10">6,000+ Surgeries</div>
+                        <div className="px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-sm font-bold border border-red-500/10">24/7 Support</div>
                     </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {[
-                        { icon: HeartPulse, title: 'AI-Enhanced ECG', desc: 'Predictive rhythm analysis using deep-learning cardiac monitoring systems.' },
-                        { icon: Activity, title: '3D Laser Mapping', desc: 'Intricate electrophysiology mapping for precise arrhythmia treatment.' },
-                        { icon: Stethoscope, title: 'Concierge Care', desc: 'Direct access to senior cardiology faculty and personalized health tracking.' },
-                        { icon: Shield, title: 'Robotic Surgery', desc: 'Minimally invasive cardiothoracic procedures with robotic precision.' },
-                        { icon: HeartPulse, title: 'Genomic Profiling', desc: 'Personalized risk assessment based on cardiovascular genetics.' },
-                        { icon: Activity, title: '24/7 Rapid Response', desc: 'Immediate emergency cardiac intervention with sub-30min intake.' },
+                        { icon: Activity, title: 'Advanced ECG & Stress Testing', desc: 'Comprehensive heart rhythm evaluation using the latest digital monitoring systems.' },
+                        { icon: HeartPulse, title: 'Digital Echocardiography', desc: 'High-definition 4D ultrasound imaging for unparalleled diagnostic clarity.' },
+                        { icon: Stethoscope, title: 'In-Depth Consultation', desc: 'One-on-one sessions with internationally recognized cardiologists.' },
+                        { icon: Shield, title: 'Interventional Cardiology', desc: 'Precision catheter-based treatments for complex vascular conditions.' },
+                        { icon: Activity, title: 'Cardiac Electrophysiology', desc: 'Specialized diagnosis and treatment for all forms of heart rhythm disorders.' },
+                        { icon: HeartPulse, title: 'Heart Failure Program', desc: 'Multi-disciplinary approach to managing chronic heart conditions effectively.' },
                     ].map((s, i) => (
-                        <div key={i} className="group relative bg-white/5 backdrop-blur-3xl border border-white/10 p-10 rounded-[2.5rem] hover:border-red-500/50 transition-all duration-500 shadow-xl overflow-hidden">
-                            <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity translate-x-1/2 -translate-y-1/2">
-                                <s.icon size={160} strokeWidth={1} />
+                        <div key={i} className="group relative bg-card border border-border p-8 rounded-3xl hover:border-red-500/30 transition-all duration-300 hover:shadow-2xl hover:shadow-red-500/5 overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl group-hover:bg-red-500/10 transition-colors"></div>
+                            <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                                <s.icon size={28} className="text-red-500" />
                             </div>
-                            <div className="w-16 h-16 bg-red-600/10 rounded-2xl flex items-center justify-center mb-8 border border-red-600/20 group-hover:bg-red-600 group-hover:text-white transition-all duration-500">
-                                <s.icon size={30} className="text-red-500 group-hover:text-white" />
-                            </div>
-                            <h3 className="text-2xl font-black text-white mb-4 uppercase tracking-tighter">{s.title}</h3>
-                            <p className="text-slate-400 font-medium leading-relaxed text-sm opacity-80 group-hover:opacity-100 transition-opacity">{s.desc}</p>
+                            <h3 className="text-xl font-bold text-card-foreground mb-3">{s.title}</h3>
+                            <p className="text-muted-foreground leading-relaxed italic">{s.desc}</p>
                         </div>
                     ))}
                 </div>
             </section>
 
-            {/* Impact Section */}
-            <section className="container mx-auto px-6 pb-40">
-                <div className="relative rounded-[4rem] overflow-hidden group border border-white/5 shadow-3xl bg-slate-900">
-                    <div className="absolute inset-0 z-0">
-                        <img 
+            {/* Premium CTA */}
+            <section className="container mx-auto px-6 pb-24">
+                <div className="relative rounded-[3rem] overflow-hidden group">
+                    <div className="absolute inset-0">
+                        <Image 
                             src="/images/services/cardiology_premium.png" 
-                            alt="Cardiac Excellence" 
-                            className="w-full h-full object-cover opacity-30 grayscale group-hover:scale-105 transition-transform duration-[2000ms]"
+                            alt="Background" 
+                            fill 
+                            className="object-cover transition-transform duration-1000 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+                        <div className="absolute inset-0 bg-red-600/90 mix-blend-multiply"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-red-900 to-transparent"></div>
                     </div>
                     
-                    <div className="relative z-10 p-16 lg:p-24 text-center max-w-4xl mx-auto">
-                        <div className="inline-block px-4 py-1.5 bg-red-600 text-[10px] font-black tracking-[0.3em] uppercase rounded-full mb-10 shadow-lg shadow-red-600/30">
-                            The Standard of Care
-                        </div>
-                        <h2 className="text-5xl lg:text-7xl font-black text-white mb-10 uppercase tracking-tighter leading-[0.9]">Transforming <br /><span className="text-red-500">Heart Health</span> Daily</h2>
-                        <p className="text-slate-300 text-xl font-medium mb-12 leading-relaxed opacity-80">
-                            Join over 150,000 patients who have regained their vitality through the Grandview Cardiology Center. Our dedication to your longevity is unwavering.
+                    <div className="relative z-10 p-12 lg:p-20 text-center">
+                        <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">Your Heart Deserves the <span className="italic">Best</span></h2>
+                        <p className="text-white/80 mb-10 max-w-2xl mx-auto text-lg leading-relaxed">
+                            Join thousands of patients who trust our Cardiology Center for their lifelong heart health. Advanced diagnostics, expert care, and a heart for every patient.
                         </p>
-                        <Link href="/book" className="inline-flex items-center gap-4 px-12 py-6 bg-white text-slate-950 font-black rounded-2xl hover:scale-105 transition-all shadow-2xl hover:bg-slate-50 uppercase tracking-widest text-sm">
-                            Join the Waitlist <ArrowRight size={20} strokeWidth={3} />
+                        <Link href="/book" className="inline-flex items-center gap-3 px-10 py-5 bg-white text-red-600 font-bold rounded-2xl hover:scale-105 transition-all shadow-xl">
+                            Start Your Journey <ArrowRight size={20} />
                         </Link>
                     </div>
                 </div>

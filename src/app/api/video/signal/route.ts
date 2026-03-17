@@ -178,16 +178,6 @@ export async function POST(req: Request) {
                     });
                 }
 
-                // Update the appointment in the database to COMPLETED
-                await prisma.appointment.update({
-                    where: { id: appointmentId },
-                    data: {
-                        status: 'COMPLETED',
-                        actualEndTime: new Date(),
-                        notes: appointment.notes || `Call ended by ${endedBy}`
-                    }
-                });
-
                 return NextResponse.json({
                     success: true,
                     status: 'ENDED',

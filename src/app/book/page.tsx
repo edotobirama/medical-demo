@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Video, MapPin, Check, Loader2, ArrowRight, User } from "lucide-react";
+import { Calendar, Video, MapPin, Check, Loader2, ArrowRight } from "lucide-react";
 import clsx from "clsx";
-import Image from "next/image";
 
 export default function BookPage() {
     const router = useRouter();
@@ -34,150 +33,120 @@ export default function BookPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
-            {/* Ambient background */}
-            <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-[120px] -z-10" />
-            <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] -z-10" />
+        <div className="container py-20 min-h-screen bg-background text-foreground">
+            <div className="max-w-2xl mx-auto">
+                <div className="text-center mb-12">
+                    <h1 className="text-4xl font-bold text-foreground mb-4">Book Your Appointment</h1>
+                    <p className="text-muted-foreground">Experience our new Priority Waitlist System.</p>
+                </div>
 
-            <div className="container py-24 relative z-10">
-                <div className="max-w-3xl mx-auto space-y-12">
-                    <div className="text-center space-y-4">
-                        <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-white">
-                            Book Your <span className="text-emerald-500 italic font-serif">Priority</span> Visit
-                        </h1>
-                        <p className="text-slate-400 text-lg max-w-xl mx-auto font-medium leading-relaxed">
-                            Experience our elite healthcare concierge with live waitlist tracking and instant specialist access.
-                        </p>
-                    </div>
+                {/* Steps Indicator */}
+                <div className="flex items-center justify-between mb-12 relative">
+                    <div className="absolute top-1/2 w-full h-1 bg-secondary -z-10" />
+                    {[1, 2].map((s) => (
+                        <div key={s} className={clsx(
+                            "w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors border-4 border-background",
+                            step >= s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                        )}>
+                            {step > s ? <Check size={20} /> : s}
+                        </div>
+                    ))}
+                </div>
 
-                    {/* Steps Indicator */}
-                    <div className="flex items-center justify-center gap-12 mb-12 relative">
-                        {[1, 2].map((s) => (
-                            <div key={s} className="flex flex-col items-center gap-3">
-                                <div className={clsx(
-                                    "w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl transition-all duration-500 shadow-2xl",
-                                    step >= s 
-                                        ? "bg-emerald-500 text-slate-950 scale-110 shadow-emerald-500/20" 
-                                        : "bg-slate-900 text-slate-500 border border-white/5"
-                                )}>
-                                    {step > s ? <Check size={24} strokeWidth={3} /> : s}
-                                </div>
-                                <span className={clsx("text-xs font-bold uppercase tracking-widest", step >= s ? "text-emerald-500" : "text-slate-600")}>
-                                    Step {s}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Content */}
-                    <div className="bg-white/5 backdrop-blur-3xl border border-white/10 p-10 rounded-[2.5rem] shadow-2xl">
-                        {step === 1 && (
-                            <div className="space-y-8 animate-in slide-in-from-bottom-5 fade-in duration-500">
-                                <div className="space-y-2">
-                                    <h2 className="text-3xl font-bold tracking-tight text-white">Select Experience</h2>
-                                    <p className="text-slate-400 font-medium">Choose how you wish to connect with our specialists.</p>
-                                </div>
-
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <button
-                                        onClick={() => setType("irl")}
-                                        className={clsx(
-                                            "group p-8 rounded-3xl border transition-all duration-300 text-left relative overflow-hidden",
-                                            type === "irl" 
-                                                ? "border-emerald-500/50 bg-emerald-500/10 shadow-2xl shadow-emerald-500/10" 
-                                                : "border-white/5 bg-white/5 hover:border-white/20 hover:translate-y-[-4px]"
-                                        )}
-                                    >
-                                        <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-slate-950 mb-6 group-hover:scale-110 transition-transform">
-                                            <MapPin size={28} />
-                                        </div>
-                                        <h3 className="font-bold text-xl mb-2 text-white">In-Person Visit</h3>
-                                        <p className="text-slate-400 text-sm leading-relaxed">Access physical diagnostics and hands-on care at our center of excellence.</p>
-                                        {type === 'irl' && <div className="absolute top-4 right-4 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />}
-                                    </button>
-
-                                    <button
-                                        onClick={() => setType("digital")}
-                                        className={clsx(
-                                            "group p-8 rounded-3xl border transition-all duration-300 text-left relative overflow-hidden",
-                                            type === "digital" 
-                                                ? "border-purple-500/50 bg-purple-500/10 shadow-2xl shadow-purple-500/10" 
-                                                : "border-white/5 bg-white/5 hover:border-white/20 hover:translate-y-[-4px]"
-                                        )}
-                                    >
-                                        <div className="w-14 h-14 bg-purple-500 rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform">
-                                            <Video size={28} />
-                                        </div>
-                                        <h3 className="font-bold text-xl mb-2 text-white">Concierge Telehealth</h3>
-                                        <p className="text-slate-400 text-sm leading-relaxed">Connect with elite specialists worldwide via our secure 4K video infrastructure.</p>
-                                        {type === 'digital' && <div className="absolute top-4 right-4 w-2 h-2 bg-purple-500 rounded-full animate-pulse" />}
-                                    </button>
-                                </div>
+                {/* Content */}
+                <div className="bg-card text-card-foreground p-8 rounded-3xl border border-border shadow-xl">
+                    {step === 1 && (
+                        <div className="space-y-6 animate-in slide-in-from-right-5 fade-in">
+                            <h2 className="text-2xl font-bold">Select Consultation Type</h2>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => setType("irl")}
+                                    className={clsx(
+                                        "p-6 rounded-xl border-2 text-left transition-all hover:scale-105",
+                                        type === "irl" ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                                    )}
+                                >
+                                    <div className="bg-blue-100/10 w-12 h-12 rounded-lg flex items-center justify-center text-blue-500 mb-4">
+                                        <MapPin size={24} />
+                                    </div>
+                                    <h3 className="font-bold text-lg">In-Person Visit</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">Visit our hospital in Vadasery for a physical checkup.</p>
+                                </button>
 
                                 <button
-                                    disabled={!type}
-                                    onClick={() => setStep(2)}
-                                    className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3 text-lg disabled:opacity-20 disabled:cursor-not-allowed group"
+                                    onClick={() => setType("digital")}
+                                    className={clsx(
+                                        "p-6 rounded-xl border-2 text-left transition-all hover:scale-105",
+                                        type === "digital" ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20" : "border-border hover:border-purple-400/50"
+                                    )}
                                 >
-                                    Continue to Specialists <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                    <div className="bg-purple-100/10 w-12 h-12 rounded-lg flex items-center justify-center text-purple-500 mb-4">
+                                        <Video size={24} />
+                                    </div>
+                                    <h3 className="font-bold text-lg">Digital Consult</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">Video call with a specialist from the comfort of your home.</p>
                                 </button>
                             </div>
-                        )}
+                            <button
+                                disabled={!type}
+                                onClick={() => setStep(2)}
+                                className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl justify-center text-lg mt-6 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Continue
+                            </button>
+                        </div>
+                    )}
 
-                        {step === 2 && (
-                            <div className="space-y-8 animate-in slide-in-from-bottom-5 fade-in duration-500">
-                                <div className="space-y-2">
-                                    <h2 className="text-3xl font-bold tracking-tight text-white">Select Elite Specialist</h2>
-                                    <p className="text-slate-400 font-medium">Join the priority queue for our world-renowned faculty.</p>
+                    {step === 2 && (
+                        <div className="space-y-6 animate-in slide-in-from-right-5 fade-in">
+                            <h2 className="text-2xl font-bold">Choose a Specialist</h2>
+                            <p className="text-muted-foreground text-sm">
+                                Select a doctor to join their live priority waitlist queue.
+                            </p>
+
+                            {loading ? (
+                                <div className="flex justify-center py-12">
+                                    <Loader2 className="animate-spin text-primary" size={32} />
                                 </div>
-
-                                {loading ? (
-                                    <div className="flex flex-col items-center justify-center py-20 gap-4">
-                                        <Loader2 className="animate-spin text-emerald-500" size={48} />
-                                        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Accessing Medical Directory...</p>
-                                    </div>
-                                ) : doctors.length === 0 ? (
-                                    <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5">
-                                        <p className="text-slate-400 font-medium italic">No specialists are currently accepting priority intake.</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
-                                        {doctors.map((doctor) => (
-                                            <div key={doctor.id} className="group border border-white/5 rounded-[2rem] p-6 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all flex items-center justify-between gap-6">
-                                                <div className="flex items-center gap-6">
-                                                    <div className="w-16 h-16 rounded-2xl overflow-hidden bg-slate-900 border border-white/10 relative shadow-2xl">
+                            ) : doctors.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    No doctors available at the moment.
+                                </div>
+                            ) : (
+                                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {doctors.map((doctor) => (
+                                        <div key={doctor.id} className="border border-border rounded-xl p-4 bg-background shadow-sm hover:shadow-md transition">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-muted">
                                                         {doctor.user.image ? (
-                                                            <Image src={doctor.user.image} alt={doctor.user.name} fill className="object-cover" />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-slate-700 bg-slate-900">
-                                                                <User size={32} />
-                                                            </div>
-                                                        )}
+                                                            <img src={doctor.user.image} className="w-full h-full object-cover" />
+                                                        ) : null}
                                                     </div>
                                                     <div>
-                                                        <h3 className="font-bold text-xl group-hover:text-emerald-400 transition-colors tracking-tight">{doctor.user.name}</h3>
-                                                        <p className="text-emerald-500/80 font-bold text-xs uppercase tracking-widest mt-1">{doctor.specialization}</p>
+                                                        <h3 className="font-bold text-lg">{doctor.user.name}</h3>
+                                                        <p className="text-sm text-primary font-medium">{doctor.specialization}</p>
                                                     </div>
                                                 </div>
                                                 <button
                                                     onClick={() => handleDoctorSelect(doctor.id)}
-                                                    className="px-6 py-3 bg-white/10 hover:bg-emerald-500 hover:text-slate-950 font-black rounded-xl text-sm transition-all flex gap-3 items-center backdrop-blur-xl group/btn"
+                                                    className="px-4 py-2 bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground font-bold rounded-lg text-sm transition flex gap-2 items-center"
                                                 >
-                                                    Join Queue <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
+                                                    View Live Queue <ArrowRight size={16} />
                                                 </button>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                <div className="pt-6 border-t border-white/5">
-                                    <button onClick={() => setStep(1)} className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold text-slate-400 hover:text-white transition-all">
-                                        Change Type
-                                    </button>
+                                        </div>
+                                    ))}
                                 </div>
+                            )}
+
+                            <div className="pt-4 border-t border-border">
+                                <button onClick={() => setStep(1)} className="px-6 py-2 border border-border rounded-lg font-bold text-muted-foreground hover:bg-muted transition">
+                                    Back
+                                </button>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

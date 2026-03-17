@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Send, User as UserIcon, Phone, Video, Info, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
+import Navbar from "@/components/Navbar";
 
 function MessagesChat() {
     const searchParams = useSearchParams();
@@ -77,6 +78,8 @@ function MessagesChat() {
 
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+            <Navbar />
+            <div className="h-20"></div> {/* Spacer for Navbar */}
 
             <div className="flex-1 container mx-auto py-6 flex flex-col lg:flex-row gap-6 max-h-[calc(100vh-80px)]">
 

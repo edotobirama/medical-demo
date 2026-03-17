@@ -164,8 +164,8 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                         const aptData = await aptRes.json();
                         setAppointment(aptData);
 
-                        // If user reloads the page and the call is already COMPLETED
-                        if (aptData.status === 'COMPLETED') {
+                        // If user reloads the page and the call is already COMPLETED (and no new call is active)
+                        if (aptData.status === 'COMPLETED' && !data.hasActiveCall) {
                             setCallEnded(true);
                             setConnected(false);
                             setConnecting(false);
@@ -208,6 +208,13 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                     const data = await res.json();
 
                     if (data.hasActiveCall) {
+                        // If the call had previously ended and the doctor is calling AGAIN,
+                        // reload the page to cleanly re-initialize the camera and reset state.
+                        if (endedRef.current) {
+                            window.location.reload();
+                            return;
+                        }
+
                         setConnecting(false);
                         setConnected(true);
 

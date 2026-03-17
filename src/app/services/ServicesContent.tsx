@@ -1,5 +1,6 @@
 "use client";
 
+import Navbar from '@/components/Navbar';
 import { Microscope, Activity, Stethoscope, Calendar, MapPin, Clock } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import clsx from 'clsx';
@@ -48,6 +49,7 @@ export default function ServicesContent({
                         isPlayful ? "bg-rose-50 text-rose-900" :
                             "bg-background text-foreground"
         )}>
+            <Navbar />
 
             {/* Modern Background Blobs */}
             {isDark && (

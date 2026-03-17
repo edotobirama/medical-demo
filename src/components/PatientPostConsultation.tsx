@@ -91,7 +91,7 @@ export default function PatientPostConsultation({ appointmentId, callDuration, r
                 <div className="w-20 h-20 bg-teal-500/20 rounded-full flex items-center justify-center mb-6">
                     <Loader2 size={40} className="text-teal-400 animate-spin" />
                 </div>
-                <h2 className="text-2xl font-bold mb-3">Please wait</h2>
+                <h2 className="text-2xl font-bold mb-3 text-white">Please wait</h2>
                 <p className="text-neutral-400 max-w-sm">
                     {remoteName} is currently generating your digital report and prescription. You will be able to review them shortly.
                 </p>
