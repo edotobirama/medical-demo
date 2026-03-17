@@ -91,17 +91,31 @@ interface LivePossibilities {
 async function generateLivePossibilities(context: string, transcriptCount: number): Promise<LivePossibilities> {
     const apiKey = process.env['GEMINI-API-KEY'] || process.env.GEMINI_API_KEY;
 
+<<<<<<< Updated upstream
     if (apiKey) {
         try {
             const systemPrompt = `You are an AI clinical decision support assistant for a doctor during a live consultation. 
 Analyze the ongoing transcript and generate structured insights. Return ONLY valid JSON with no markdown wrapping, containing this exact structure:
+=======
+    if (!apiKey) {
+        throw new Error('Missing Gemini API Key');
+    }
+
+    try {
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey });
+
+        const prompt = `You are an AI clinical decision support assistant for a doctor during a live consultation. 
+Analyze the ongoing transcript and generate structured insights. 
+You must return a valid JSON object matching this exact schema:
+>>>>>>> Stashed changes
 {
-  "differentials": [{"name": "Diagnosis Name", "confidence": "high|medium|low", "reasoning": "Brief reasoning"}],
+  "differentials": [{"name": "Diagnosis Name", "confidence": "high" | "medium" | "low", "reasoning": "Brief reasoning"}],
   "suggestedQuestions": ["Question to ask the patient"],
   "recommendedTests": ["Test name"],
   "treatmentPaths": ["Treatment recommendation"],
   "keySymptoms": ["symptom mentioned"],
-  "urgencyLevel": "routine|moderate|urgent",
+  "urgencyLevel": "routine" | "moderate" | "urgent",
   "analysisNote": "Brief summary of analysis"
 }
 Rules:
@@ -110,6 +124,7 @@ Rules:
 - suggestedQuestions should help narrow the diagnosis
 - treatmentPaths should be practical, evidence-based suggestions
 - keySymptoms should extract the main symptoms mentioned by the patient
+<<<<<<< Updated upstream
 - urgencyLevel reflects overall clinical urgency based on the conversation`;
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
@@ -144,95 +159,27 @@ Rules:
             return getSmartDefaultPossibilities(transcriptCount);
         }
     }
+=======
+- urgencyLevel reflects overall clinical urgency based on the conversation
 
-    return getSmartDefaultPossibilities(transcriptCount);
-}
+Consultation Transcript:
+${context}
+`;
 
-function getSmartDefaultPossibilities(transcriptCount: number): LivePossibilities {
-    // Progressive demo data that evolves based on how much conversation has occurred
-    if (transcriptCount <= 2) {
-        return {
-            differentials: [
-                { name: 'Viral Upper Respiratory Infection', confidence: 'medium', reasoning: 'Common presentation; needs symptom clarification' },
-                { name: 'Allergic Rhinitis', confidence: 'low', reasoning: 'Seasonal patterns should be explored' },
-            ],
-            suggestedQuestions: [
-                'How long have these symptoms been present?',
-                'Have you had any fever or chills?',
-                'Do you have any known allergies or chronic conditions?',
-                'Have you recently traveled or been exposed to sick contacts?'
-            ],
-            recommendedTests: ['Vital signs assessment'],
-            treatmentPaths: [
-                'Symptomatic relief while gathering more information'
-            ],
-            keySymptoms: ['Initial assessment'],
-            urgencyLevel: 'routine',
-            analysisNote: 'Early conversation stage — gathering initial patient information.'
-        };
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+            }
+        });
+>>>>>>> Stashed changes
+
+        const content = response.text || '{}';
+        return JSON.parse(content);
+        
+    } catch (e) {
+        console.error('Gemini possibilities error:', e);
+        throw new Error('Failed to generate insights from Gemini.');
     }
-
-    if (transcriptCount <= 8) {
-        return {
-            differentials: [
-                { name: 'Viral Upper Respiratory Infection', confidence: 'high', reasoning: 'Consistent symptom pattern with acute onset' },
-                { name: 'Acute Sinusitis', confidence: 'medium', reasoning: 'Nasal congestion with possible facial pressure' },
-                { name: 'Allergic Rhinitis', confidence: 'medium', reasoning: 'Recurring pattern noted; needs allergy history' },
-                { name: 'Early Bacterial Pharyngitis', confidence: 'low', reasoning: 'Rule out if sore throat is prominent' },
-            ],
-            suggestedQuestions: [
-                'Is there facial pain or pressure, especially when bending forward?',
-                'What color is your nasal discharge?',
-                'Have you tried any over-the-counter medications?',
-                'Any difficulty breathing or wheezing?'
-            ],
-            recommendedTests: [
-                'Complete Blood Count (CBC)',
-                'Rapid Strep Test (if pharyngitis suspected)',
-                'Nasal swab if symptoms persist beyond 10 days'
-            ],
-            treatmentPaths: [
-                'Rest, hydration, and symptom monitoring',
-                'Antihistamines if allergic component suspected',
-                'Saline nasal rinse for congestion relief',
-                'Consider empirical antibiotic if bacterial infection confirmed'
-            ],
-            keySymptoms: ['Nasal congestion', 'Sore throat', 'Fatigue', 'Headache'],
-            urgencyLevel: 'routine',
-            analysisNote: 'Mid-conversation: Symptoms suggest a respiratory condition. Differentials are being refined as more data comes in.'
-        };
-    }
-
-    // After significant conversation
-    return {
-        differentials: [
-            { name: 'Viral Upper Respiratory Infection', confidence: 'high', reasoning: 'Symptom onset, duration, and pattern strongly suggest viral etiology' },
-            { name: 'Acute Bacterial Sinusitis', confidence: 'medium', reasoning: 'Duration > 7 days with purulent discharge would increase probability' },
-            { name: 'Allergic Rhinitis with Superinfection', confidence: 'medium', reasoning: 'Recurring seasonal pattern with acute exacerbation' },
-            { name: 'Influenza', confidence: 'low', reasoning: 'Consider if fever > 38.5°C with myalgia present' },
-            { name: 'COVID-19', confidence: 'low', reasoning: 'Standard screening recommended in respiratory illness' },
-        ],
-        suggestedQuestions: [
-            'Have your symptoms improved, worsened, or stayed the same over time?',
-            'Any history of similar episodes in the past?',
-            'Are you up to date on vaccinations including flu and COVID?'
-        ],
-        recommendedTests: [
-            'Complete Blood Count (CBC)',
-            'C-Reactive Protein (CRP)',
-            'Rapid Influenza/COVID-19 Combo Test',
-            'Sinus X-ray or CT if sinusitis suspected',
-            'Throat culture if pharyngitis persists'
-        ],
-        treatmentPaths: [
-            'Symptomatic management with NSAIDs and decongestants',
-            'Antihistamines (cetirizine/loratadine) for allergic component',
-            'Amoxicillin-clavulanate if bacterial sinusitis confirmed',
-            'Follow-up in 7-10 days if no improvement',
-            'Patient education on warning signs requiring ER visit'
-        ],
-        keySymptoms: ['Nasal congestion', 'Sore throat', 'Fatigue', 'Headache', 'Low-grade fever', 'Post-nasal drip'],
-        urgencyLevel: 'moderate',
-        analysisNote: 'Advanced analysis: Multiple data points collected. Top differentials refined with confidence levels. Management plan can be formulated.'
-    };
 }
