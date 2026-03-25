@@ -1,7 +1,7 @@
 import { auth, signOut } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
-import { logoutAction } from '@/lib/actions';
+import LogoutButton from '@/components/LogoutButton';
 import Link from 'next/link';
 import { UserPlus, Users, Stethoscope, Calendar, LogOut, Shield, Trash2, Mail } from 'lucide-react';
 
@@ -42,11 +42,7 @@ export default async function AdminDashboard() {
                         <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                             View Site
                         </Link>
-                        <form action={logoutAction}>
-                            <button className="btn btn-outline border-border hover:bg-muted text-muted-foreground">
-                                <LogOut size={18} />
-                            </button>
-                        </form>
+                        <LogoutButton />
                     </div>
                 </div>
             </div>
