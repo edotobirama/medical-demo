@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 
+export const dynamic = 'force-dynamic';
+
 // POST: Save a transcript segment
 export async function POST(req: Request) {
     try {
@@ -70,7 +72,7 @@ export async function GET(req: Request) {
 
 // AI Translation helper (mock + real OpenAI support)
 async function translateToEnglish(text: string, fromLang: string): Promise<string> {
-    const apiKey = process.env['GEMINI-API-KEY'] || process.env.GEMINI_API_KEY;
+    const apiKey = process.env['GEMINI_API_KEY'] || process.env.GEMINI_API_KEY;
 
     if (apiKey) {
         try {

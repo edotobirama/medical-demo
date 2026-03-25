@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
 import { auth, signOut } from '@/auth';
 import { redirect } from 'next/navigation';
+import LogoutButton from '@/components/LogoutButton';
 import CancelAppointmentButton from '@/components/CancelAppointmentButton';
 import PatientRefundReschedule from '@/components/PatientRefundReschedule';
 import DocumentUpload from '@/components/DocumentUpload';
@@ -113,14 +114,7 @@ export default async function PatientDashboard() {
                         <Link href="/book" className="flex items-center gap-2 px-7 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full shadow-md hover:shadow-lg transition-all active:scale-[0.97]">
                             Book Appointment
                         </Link>
-                        <form action={async () => {
-                            'use server';
-                            await signOut({ redirectTo: '/login' });
-                        }}>
-                            <button className="btn btn-outline border-border hover:bg-muted text-muted-foreground">
-                                <LogOut size={18} />
-                            </button>
-                        </form>
+                        <LogoutButton />
                     </div>
                 </div>
             </div>

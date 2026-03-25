@@ -43,12 +43,12 @@ export default async function DoctorsPage() {
                 <div className="container mx-auto px-6 relative z-20">
                     <div className="max-w-3xl">
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="w-16 h-16 bg-blue-500/15 backdrop-blur-md rounded-2xl flex items-center justify-center border border-blue-500/20">
-                                <Users size={32} className="text-blue-500" />
+                            <div className="w-16 h-16 bg-primary/15 backdrop-blur-md rounded-2xl flex items-center justify-center border border-primary/20">
+                                <Users size={32} className="text-primary" />
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-blue-500 uppercase tracking-widest">Elite Medical Team</p>
-                                <h1 className="text-5xl lg:text-7xl font-bold text-foreground tracking-tight">Expert <span className="text-blue-500">Specialists</span></h1>
+                                <p className="text-sm font-semibold text-primary uppercase tracking-widest">Elite Medical Team</p>
+                                <h1 className="text-5xl lg:text-7xl font-bold text-foreground tracking-tight">Expert <span className="text-primary">Specialists</span></h1>
                             </div>
                         </div>
                         <p className="text-xl text-muted-foreground mb-8 leading-relaxed max-w-2xl">

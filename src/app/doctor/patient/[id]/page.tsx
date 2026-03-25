@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { ArrowLeft, User, Phone, Mail, Droplets, MapPin, Calendar, FileText, BrainCircuit, Activity } from "lucide-react";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 
 export const revalidate = 0;
 
@@ -51,7 +52,8 @@ export default async function PatientProfileView({ params }: { params: Promise<{
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-20 pt-8">
-            <div className="container max-w-5xl mx-auto">
+            <Navbar />
+            <div className="container max-w-5xl mx-auto pt-20">
                 {/* Back Navigation */}
                 <Link href="/doctor" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors mb-6 group">
                     <ArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" /> 

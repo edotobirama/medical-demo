@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import DoctorSettingsComponent from "@/components/DoctorSettings";
 import SlotManager from "@/components/SlotManager";
 import DoctorConsultationButtons from "@/components/DoctorConsultationButtons";
+import Navbar from "@/components/Navbar";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import DoctorFollowUpBooking from "@/components/DoctorFollowUpBooking";
@@ -106,7 +107,8 @@ export default async function DoctorDashboard() {
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-20">
-            <div className="container py-12">
+            <Navbar />
+            <div className="container py-12 pt-28">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
                     <div>
                         <div className="text-sm font-semibold text-primary mb-2 uppercase tracking-wider">Doctor Portal</div>
