@@ -54,8 +54,8 @@ export async function POST(req: Request) {
 
         const masterAiSummary = (appointment.patient as any).masterAiSummary || 'No prior medical history summary available.';
 
-        const recentReportsText = recentReports.length > 0 
-            ? recentReports.map((r: any, i: number) => `Recent Report ${i+1} (${r.title}):\nSummary: ${r.aiSummary || 'N/A'}\nNotes: ${r.aiPatientNotes || 'N/A'}`).join('\n\n')
+        const recentReportsText = recentReports.length > 0
+            ? recentReports.map((r: any, i: number) => `Recent Report ${i + 1} (${r.title}):\nSummary: ${r.aiSummary || 'N/A'}\nNotes: ${r.aiPatientNotes || 'N/A'}`).join('\n\n')
             : 'No recent reports available.';
 
         const contextPrompt = `
@@ -112,7 +112,7 @@ interface AIReport {
 }
 
 async function generateAIReport(context: string): Promise<AIReport> {
-    const apiKey = process.env['GEMINI-API-KEY'] || process.env.GEMINI_API_KEY;
+    const apiKey = process.env['GEMINI_API_KEY'] || process.env.GEMINI_API_KEY;
 
     if (apiKey) {
         try {
@@ -148,7 +148,7 @@ async function generateAIReport(context: string): Promise<AIReport> {
 
             const data = await response.json();
             const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-            
+
             try {
                 return JSON.parse(content);
             } catch {

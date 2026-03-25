@@ -72,7 +72,7 @@ export async function GET(req: Request) {
 
 // AI Translation helper (mock + real OpenAI support)
 async function translateToEnglish(text: string, fromLang: string): Promise<string> {
-    const apiKey = process.env['GEMINI-API-KEY'] || process.env.GEMINI_API_KEY;
+    const apiKey = process.env['GEMINI_API_KEY'] || process.env.GEMINI_API_KEY;
 
     if (apiKey) {
         try {

@@ -89,7 +89,7 @@ interface LivePossibilities {
 }
 
 async function generateLivePossibilities(context: string, transcriptCount: number): Promise<LivePossibilities> {
-    const apiKey = process.env['GEMINI-API-KEY'] || process.env.GEMINI_API_KEY;
+    const apiKey = process.env['GEMINI_API_KEY'] || process.env.GEMINI_API_KEY;
 
     if (apiKey) {
         try {

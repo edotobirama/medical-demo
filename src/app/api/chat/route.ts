@@ -14,12 +14,12 @@ export async function POST(request: Request) {
         const userMessage = messages[messages.length - 1].content;
 
         // 1. Check for Gemini Key
-        const apiKey = process.env['GEMINI-API-KEY'] || process.env.GEMINI_API_KEY;
+        const apiKey = process.env['GEMINI_API_KEY'] || process.env.GEMINI_API_KEY;
 
         if (apiKey) {
             // REAL LLM CALL via Gemini
             const systemPrompt = "You are an advanced AI medical assistant for NovaCare. Your goal is to ask clarifying diagnostic questions to the patient one by one. Be professional, empathetic, and concise. Do NOT provide a medical diagnosis, but gather symptoms to prepare for a doctor's visit. Keep responses short (under 50 words).";
-            
+
             // Format messages for Gemini
             // Gemini uses "user" and "model" roles
             const geminiMessages = messages.map((m: any) => ({
