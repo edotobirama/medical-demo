@@ -91,12 +91,6 @@ interface LivePossibilities {
 async function generateLivePossibilities(context: string, transcriptCount: number): Promise<LivePossibilities> {
     const apiKey = process.env['GEMINI_API_KEY'] || process.env.GEMINI_API_KEY;
 
-<<<<<<< Updated upstream
-    if (apiKey) {
-        try {
-            const systemPrompt = `You are an AI clinical decision support assistant for a doctor during a live consultation. 
-Analyze the ongoing transcript and generate structured insights. Return ONLY valid JSON with no markdown wrapping, containing this exact structure:
-=======
     if (!apiKey) {
         throw new Error('Missing Gemini API Key');
     }
@@ -108,7 +102,6 @@ Analyze the ongoing transcript and generate structured insights. Return ONLY val
         const prompt = `You are an AI clinical decision support assistant for a doctor during a live consultation. 
 Analyze the ongoing transcript and generate structured insights. 
 You must return a valid JSON object matching this exact schema:
->>>>>>> Stashed changes
 {
   "differentials": [{"name": "Diagnosis Name", "confidence": "high" | "medium" | "low", "reasoning": "Brief reasoning"}],
   "suggestedQuestions": ["Question to ask the patient"],
@@ -124,42 +117,6 @@ Rules:
 - suggestedQuestions should help narrow the diagnosis
 - treatmentPaths should be practical, evidence-based suggestions
 - keySymptoms should extract the main symptoms mentioned by the patient
-<<<<<<< Updated upstream
-- urgencyLevel reflects overall clinical urgency based on the conversation`;
-
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    systemInstruction: { parts: [{ text: systemPrompt }] },
-                    contents: [{ role: 'user', parts: [{ text: context }] }],
-                    generationConfig: {
-                        responseMimeType: "application/json"
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                console.error("Gemini API Error:", await response.text());
-                throw new Error("Gemini API request failed");
-            }
-
-            const data = await response.json();
-            const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-
-            try {
-                return JSON.parse(content);
-            } catch {
-                return getSmartDefaultPossibilities(transcriptCount);
-            }
-        } catch (e) {
-            console.error('Gemini possibilities error:', e);
-            return getSmartDefaultPossibilities(transcriptCount);
-        }
-    }
-=======
 - urgencyLevel reflects overall clinical urgency based on the conversation
 
 Consultation Transcript:
@@ -173,7 +130,6 @@ ${context}
                 responseMimeType: "application/json",
             }
         });
->>>>>>> Stashed changes
 
         const content = response.text || '{}';
         return JSON.parse(content);
