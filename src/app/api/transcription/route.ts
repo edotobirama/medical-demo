@@ -51,18 +51,10 @@ export async function POST(req: Request) {
              return NextResponse.json({ error: 'User not participant in this appointment' }, { status: 403 });
         }
 
-        // Use the client-claimed role as it's view-dependent
-        // and is not affected by shared session cookies between tabs.
-        // If the user *could* be either role (shared session), we trust the client's own page context.
-        let resolvedRole: 'DOCTOR' | 'PATIENT';
-        if (speakerRole === 'PATIENT' && isPatientParticipant) {
-            resolvedRole = 'PATIENT';
-        } else if (speakerRole === 'DOCTOR' && isDoctorParticipant) {
-            resolvedRole = 'DOCTOR';
-        } else {
-            // Otherwise default to the server-known role
-            resolvedRole = isDoctorParticipant ? 'DOCTOR' : 'PATIENT';
-        }
+        // Use the client-claimed role — authoritative context at page render time.
+        // As long as the user is a participant in this appointment (verified above),
+        // we trust the client's role claim for labeling purposes (prevents cross-tab session drift).
+        const resolvedRole = (speakerRole === 'PATIENT') ? 'PATIENT' : 'DOCTOR';
 
         const transcript = await (prisma as any).consultationTranscript.create({
             data: {
