@@ -38,25 +38,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
         }
 
-        // Determine speaker role:
-        // The client sends `speakerRole` derived from the page's server-side-rendered
-        // isDoctor prop — which is authoritative at page-load time and is NOT affected
-        // by session cookie sharing between browser tabs (a common testing scenario).
-        // We validate it against the appointment's actual participants for security.
         const userId = (session.user as any).id;
         const isDoctorParticipant = appointment.doctor.user.id === userId;
         const isPatientParticipant = appointment.patient.user.id === userId;
 
-        let resolvedRole: 'DOCTOR' | 'PATIENT';
-        if (isDoctorParticipant) {
-            resolvedRole = 'DOCTOR';
-        } else if (isPatientParticipant) {
-            resolvedRole = 'PATIENT';
-        } else {
-            // Fall back to client-sent role if user cannot be matched to appointment
-            // (handles edge cases like testing with shared sessions)
-            resolvedRole = speakerRole === 'DOCTOR' ? 'DOCTOR' : 'PATIENT';
+        if (!isDoctorParticipant && !isPatientParticipant) {
+            return NextResponse.json({ error: 'User is not a participant in this appointment' }, { status: 403 });
         }
+
+        // Use the client-claimed role as it's view-dependent. This ensures 
+        // tab-isolation works during both real use and shared-session testing.
+        const resolvedRole = (speakerRole === 'PATIENT') ? 'PATIENT' : 'DOCTOR';
 
         const transcript = await (prisma as any).consultationTranscript.create({
             data: {
