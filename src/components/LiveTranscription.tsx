@@ -248,38 +248,59 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         }
     }, [sessionId, selectedLang, isDoctor, saveTranscript, processBufferedAudio, engineStatus]);
 
-    // Setup Media Recorder — use shared stream from video page if available
-    const startAudioStream = useCallback(async () => {
-        try {
-            // Prefer the shared stream so we don't double-request mic permissions
-            const stream = localStream || await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
-            const recorder = new MediaRecorder(stream, { mimeType });
-            
-            recorder.ondataavailable = (e) => {
-                if (e.data.size > 0) {
-                    if (wsRef.current?.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(e.data);
-                    } else {
-                        // Robust Buffering Mechanism
-                        audioBufferRef.current.push(e.data);
-                        setBufferCount(audioBufferRef.current.length);
-                    }
-                }
-            };
-            
-            recorder.start(500); // Fire chunks every 500ms
-            mediaRecorderRef.current = recorder;
-            setIsListening(true);
-            connectWebSocket();
-
-            // Hybrid Fallback: Start local recognition so UI stays magical if Mock WSS is used
-            startFallbackRecognition();
-        } catch (e) {
-            console.error("Mic error:", e);
-            showAlert('Microphone permission denied.', 'error');
+    // Primary transcription engine: Web Speech API.
+    // MUST be defined before startAudioStream (which depends on it).
+    const startFallbackRecognition = useCallback(() => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            console.warn('Web Speech API not supported in this browser.');
+            return;
         }
-    }, [localStream, connectWebSocket, showAlert]);
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = selectedLang;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event: any) => {
+            let interim = '';
+            let final = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const t = event.results[i][0].transcript;
+                if (event.results[i].isFinal) final += t;
+                else interim += t;
+            }
+            setInterimText(interim);
+            if (final) {
+                const entry: TranscriptEntry = {
+                    text: final,
+                    speaker: myRole,
+                    language: selectedLang.split('-')[0],
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    isFinal: true
+                };
+                setTranscripts(prev => [...prev, entry]);
+                setInterimText('');
+                saveTranscript(final, selectedLang.split('-')[0]);
+            }
+        };
+
+        recognition.onerror = (e: any) => {
+            if (e.error === 'aborted' || e.error === 'no-speech' || e.error === 'network') return;
+            console.warn('Speech recognition error:', e.error);
+        };
+
+        recognition.onend = () => {
+            // Auto-restart while listening is active (recognitionRef cleared on stop)
+            if (recognitionRef.current) {
+                try { recognition.start(); } catch (_) {}
+            }
+        };
+
+        recognitionRef.current = recognition;
+        try { recognition.start(); } catch (e) { console.warn('Speech recognition start failed:', e); }
+    }, [selectedLang, myRole, saveTranscript]);
 
     const stopAudioStream = useCallback(() => {
         if (mediaRecorderRef.current) {
@@ -302,53 +323,43 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         setInterimText('');
     }, []);
 
-    // Hybrid Fallback engine to ensure UI functionality with real text 
-    const startFallbackRecognition = useCallback(() => {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) return;
+    // Two independent transcription paths — a failure in path 2 never
+    // prevents path 1 (the real engine) from starting.
+    const startAudioStream = useCallback(async () => {
+        setIsListening(true);
 
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = selectedLang;
-        recognition.maxAlternatives = 1;
+        // Path 1: Web Speech API (primary — always starts)
+        startFallbackRecognition();
 
-        recognition.onresult = (event: any) => {
-            let interim = '';
-            let final = '';
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const t = event.results[i][0].transcript;
-                if (event.results[i].isFinal) final += t;
-                else interim += t;
-            }
-            setInterimText(interim);
-            if (final) {
-                const entry: TranscriptEntry = {
-                    text: final,
-                    speaker: isDoctor ? 'DOCTOR' : 'PATIENT',
-                    language: selectedLang.split('-')[0],
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    isFinal: true
-                };
-                setTranscripts(prev => [...prev, entry]);
-                setInterimText('');
-                saveTranscript(final, selectedLang.split('-')[0]);
-            }
-        };
+        // Path 2: MediaRecorder → WebSocket (optional/secondary)
+        try {
+            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus'
+                : MediaRecorder.isTypeSupported('audio/webm')
+                    ? 'audio/webm'
+                    : 'audio/ogg';
+            const recorder = new MediaRecorder(audioStream, { mimeType });
 
-        recognition.onerror = (e: any) => {
-            if (e.error === 'aborted' || e.error === 'no-speech' || e.error === 'network') return;
-        };
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    if (wsRef.current?.readyState === WebSocket.OPEN) {
+                        wsRef.current.send(e.data);
+                    } else {
+                        audioBufferRef.current.push(e.data);
+                        setBufferCount(audioBufferRef.current.length);
+                    }
+                }
+            };
 
-        recognition.onend = () => {
-            if (recognitionRef.current && isListening) {
-                try { recognition.start(); } catch (e) {}
-            }
-        };
-
-        recognitionRef.current = recognition;
-        try { recognition.start(); } catch(e){}
-    }, [selectedLang, isDoctor, saveTranscript, isListening]);
+            recorder.start(500);
+            mediaRecorderRef.current = recorder;
+            connectWebSocket();
+        } catch (e) {
+            // Non-critical — Speech Recognition (path 1) is still running
+            console.warn('MediaRecorder unavailable (non-critical):', e);
+        }
+    }, [startFallbackRecognition, connectWebSocket]);
 
     useEffect(() => {
         if (isConnected && !isListening) {

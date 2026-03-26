@@ -99,27 +99,29 @@ export default async function PatientDashboard() {
         <div className="bg-background min-h-screen pb-20">
             {/* Header / Hero */}
             <div className="bg-card border-b border-border sticky top-0 z-30">
-                <div className="container py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold text-lg shadow-sm border border-primary/30">
-                            {user.name?.[0] || <UserIcon size={20} />}
+                <div className="container py-3 md:py-4 flex justify-between items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 md:w-10 md:h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold text-base md:text-lg shadow-sm border border-primary/30 flex-shrink-0">
+                            {user.name?.[0] || <UserIcon size={18} />}
                         </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-card-foreground">Welcome, {user.name?.split(' ')[0]}</h1>
-                            <p className="text-xs text-muted-foreground">Patient Dashboard</p>
+                        <div className="min-w-0">
+                            <h1 className="text-base md:text-xl font-bold text-card-foreground truncate">Welcome, {user.name?.split(' ')[0]}</h1>
+                            <p className="text-xs text-muted-foreground hidden sm:block">Patient Dashboard</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Link href="/book" className="flex items-center gap-2 px-7 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full shadow-md hover:shadow-lg transition-all active:scale-[0.97]">
-                            Book Appointment
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <Link href="/book" className="flex items-center gap-1.5 px-3 md:px-6 py-2 md:py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full shadow-md hover:shadow-lg transition-all active:scale-[0.97] text-sm whitespace-nowrap">
+                            <Plus size={15} />
+                            <span className="hidden sm:inline">Book Appointment</span>
+                            <span className="sm:hidden">Book</span>
                         </Link>
                         <LogoutButton />
                     </div>
                 </div>
             </div>
 
-            <div className="container py-8 grid lg:grid-cols-12 gap-8">
+            <div className="container py-5 md:py-8 grid lg:grid-cols-12 gap-5 md:gap-8">
 
                 {/* Main Content Area */}
                 <div className="lg:col-span-8 space-y-8">
@@ -232,7 +234,7 @@ export default async function PatientDashboard() {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                                        <div className="flex flex-wrap gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                                             <PatientRescheduleButton
                                                 appointmentId={app.id}
                                                 currentTime={app.requestedTime?.toISOString() || new Date().toISOString()}
@@ -247,7 +249,7 @@ export default async function PatientDashboard() {
                                             ) : (
                                                 <Link href="/parking" className="flex-1 sm:flex-none btn btn-primary px-4 py-2 text-xs text-center">Directions</Link>
                                             )}
-                                            <Link href={`/inbox/${app.doctor.userId}`} className="flex-1 sm:flex-none btn px-4 py-2 text-xs text-center bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold w-full sm:w-auto mt-2 sm:mt-0 shadow-sm border border-border">
+                                            <Link href={`/inbox/${app.doctor.userId}`} className="flex-1 sm:flex-none btn px-4 py-2 text-xs text-center bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold shadow-sm border border-border">
                                                 Message
                                             </Link>
                                         </div>
@@ -332,30 +334,32 @@ export default async function PatientDashboard() {
 
                         {/* Existing Reports */}
                         <h4 className="text-sm font-bold text-foreground mb-3">Your Documents</h4>
-                        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                        <div className="bg-card rounded-xl border border-border shadow-sm overflow-x-auto">
                             {reports.length > 0 ? (
-                                <table className="w-full text-left text-sm">
+                                <table className="w-full text-left text-sm min-w-[320px]">
                                     <thead className="bg-muted text-muted-foreground font-medium border-b border-border">
                                         <tr>
-                                            <th className="p-4">Report Name</th>
-                                            <th className="p-4 hidden sm:table-cell">Date</th>
-                                            <th className="p-4">Type</th>
-                                            <th className="p-4 text-right">Action</th>
+                                            <th className="p-3 md:p-4">Report Name</th>
+                                            <th className="p-3 md:p-4 hidden sm:table-cell">Date</th>
+                                            <th className="p-3 md:p-4 hidden xs:table-cell">Type</th>
+                                            <th className="p-3 md:p-4 text-right">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
                                         {reports.map((report: any) => (
                                             <tr key={report.id} className="hover:bg-muted transition-colors">
-                                                <td className="p-4 font-medium text-card-foreground flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                                                        <FileText size={16} />
+                                                <td className="p-3 md:p-4 font-medium text-card-foreground">
+                                                    <div className="flex items-center gap-2 md:gap-3">
+                                                        <div className="w-7 h-7 md:w-8 md:h-8 rounded bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0">
+                                                            <FileText size={14} />
+                                                        </div>
+                                                        <span className="truncate max-w-[120px] sm:max-w-[200px] md:max-w-none">{report.title}</span>
                                                     </div>
-                                                    {report.title}
                                                 </td>
-                                                <td className="p-4 text-muted-foreground hidden sm:table-cell">{format(new Date(report.createdAt), 'MMM d, yyyy')}</td>
-                                                <td className="p-4 text-muted-foreground uppercase text-xs font-semibold">{report.fileType}</td>
-                                                <td className="p-4 text-right">
-                                                    <button className="text-primary hover:brightness-110 font-medium text-xs border border-primary/20 hover:border-primary/40 bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded transition-all">
+                                                <td className="p-3 md:p-4 text-muted-foreground hidden sm:table-cell">{format(new Date(report.createdAt), 'MMM d, yyyy')}</td>
+                                                <td className="p-3 md:p-4 text-muted-foreground uppercase text-xs font-semibold hidden xs:table-cell">{report.fileType}</td>
+                                                <td className="p-3 md:p-4 text-right">
+                                                    <button className="text-primary hover:brightness-110 font-medium text-xs border border-primary/20 hover:border-primary/40 bg-primary/10 hover:bg-primary/20 px-2 md:px-3 py-1.5 rounded transition-all whitespace-nowrap">
                                                         Download
                                                     </button>
                                                 </td>
