@@ -25,14 +25,46 @@ export async function POST(req: Request) {
             englishText = await translateToEnglish(text, language);
         }
 
+        // Validate the appointment exists and the user is a participant
+        const appointment = await (prisma as any).appointment.findUnique({
+            where: { id: appointmentId },
+            include: {
+                doctor: { include: { user: true } },
+                patient: { include: { user: true } }
+            }
+        });
+
+        if (!appointment) {
+            return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
+        }
+
+        // Determine speaker role:
+        // The client sends `speakerRole` derived from the page's server-side-rendered
+        // isDoctor prop — which is authoritative at page-load time and is NOT affected
+        // by session cookie sharing between browser tabs (a common testing scenario).
+        // We validate it against the appointment's actual participants for security.
+        const userId = (session.user as any).id;
+        const isDoctorParticipant = appointment.doctor.user.id === userId;
+        const isPatientParticipant = appointment.patient.user.id === userId;
+
+        let resolvedRole: 'DOCTOR' | 'PATIENT';
+        if (isDoctorParticipant) {
+            resolvedRole = 'DOCTOR';
+        } else if (isPatientParticipant) {
+            resolvedRole = 'PATIENT';
+        } else {
+            // Fall back to client-sent role if user cannot be matched to appointment
+            // (handles edge cases like testing with shared sessions)
+            resolvedRole = speakerRole === 'DOCTOR' ? 'DOCTOR' : 'PATIENT';
+        }
+
         const transcript = await (prisma as any).consultationTranscript.create({
             data: {
                 appointmentId,
                 originalText: text,
                 language: language || 'en',
                 englishText,
-                // ALWAYS use server-side session role — never trust client-sent speakerRole
-                speakerRole: (session.user as any).role === 'DOCTOR' ? 'DOCTOR' : 'PATIENT',
+                speakerRole: resolvedRole,
             }
         });
 

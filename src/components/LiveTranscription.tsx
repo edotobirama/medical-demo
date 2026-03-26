@@ -61,13 +61,15 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
     const wsRef = useRef<WebSocket | null>(null);
     const audioBufferRef = useRef<Blob[]>([]);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const recognitionRef = useRef<any>(null); // For Fallback Simulated Engine
+    const recognitionRef = useRef<any>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
-    // Track IDs of transcripts saved BY THIS CLIENT — used to preserve correct
-    // speaker label when DB polling returns entries (prevents cross-session misattribution)
+    // Track IDs confirmed saved by this client
     const mySavedIds = useRef<Set<string>>(new Set());
-    // Local role string derived from the prop — never comes from the session cookie
+    // Track texts currently being saved (in-flight) — handles the race where
+    // loadTranscripts fetches a DB entry before saveTranscript returns the ID
+    const pendingTexts = useRef<Set<string>>(new Set());
+    // Local role — derived from the prop set at server-render time, never from cookies
     const myRole = isDoctor ? 'DOCTOR' : 'PATIENT';
 
     const { showAlert } = useCustomAlert();
@@ -107,11 +109,14 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
                                 id: t.id,
                                 text: t.originalText,
                                 translatedText: t.englishText,
-                                // If this transcript was saved by THIS client, always use
-                                // the local isDoctor-derived role — never trust the DB
-                                // speakerRole which may be wrong when testing with the same
-                                // browser session for both accounts.
-                                speaker: mySavedIds.current.has(t.id) ? myRole : t.speakerRole,
+                                // Priority order for speaker label:
+                                // 1. If this ID was saved by this client → always use local role
+                                // 2. If this text is currently being saved (in-flight race) → use local role
+                                // 3. Otherwise use what the DB says (another participant's speech)
+                                speaker: (
+                                    mySavedIds.current.has(t.id) ||
+                                    pendingTexts.current.has(t.originalText)
+                                ) ? myRole : t.speakerRole,
                                 language: t.language,
                                 timestamp: new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                 isFinal: true
@@ -137,6 +142,9 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
     const saveTranscript = useCallback(async (text: string, language: string) => {
         if (!text.trim()) return;
         setSaving(true);
+        // Register as in-flight BEFORE the async POST so the poll can
+        // correctly label it even if the DB entry arrives first
+        pendingTexts.current.add(text);
         try {
             const res = await fetch('/api/transcription', {
                 method: 'POST',
@@ -145,27 +153,29 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
                     appointmentId,
                     text,
                     language,
-                    speakerRole: isDoctor ? 'DOCTOR' : 'PATIENT',
-                    sessionId // Pass Session ID to backend for tracking
+                    speakerRole: myRole,  // Always send our local role
+                    sessionId
                 })
             });
 
             if (res.ok) {
                 const data = await res.json();
                 if (data.transcript?.id) {
-                    // Register this ID as ours so the polling deduplicator
-                    // will always label it with the correct local role
+                    // Move from pending to confirmed
+                    pendingTexts.current.delete(text);
                     mySavedIds.current.add(data.transcript.id);
 
                     setTranscripts(prev => {
                         const updated = [...prev];
-                        const last = updated[updated.length - 1];
-                        if (last && last.text === text) {
-                            last.id = data.transcript.id;
-                            last.speaker = myRole; // Lock in the correct role
-                            if (data.transcript.englishText) {
-                                last.translatedText = data.transcript.englishText;
-                            }
+                        // Find the matching local entry by text and update its ID + lock role
+                        const idx = updated.findLastIndex(e => e.text === text && !e.id);
+                        if (idx !== -1) {
+                            updated[idx] = {
+                                ...updated[idx],
+                                id: data.transcript.id,
+                                speaker: myRole,
+                                ...(data.transcript.englishText ? { translatedText: data.transcript.englishText } : {})
+                            };
                         }
                         return updated;
                     });
@@ -174,9 +184,10 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         } catch (e) {
             console.error('Failed to save transcript:', e);
         } finally {
+            pendingTexts.current.delete(text); // Always clean up pending
             setSaving(false);
         }
-    }, [appointmentId, isDoctor, sessionId]);
+    }, [appointmentId, myRole, sessionId]);
 
     // 3. Audio Buffer Management: Network flush
     const processBufferedAudio = useCallback(() => {
