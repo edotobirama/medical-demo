@@ -180,7 +180,6 @@ export async function sendContactMessage(
         return { error: 'Failed to send message. Please try again.' };
     }
 }
-import { revalidatePath } from 'next/cache';
 
 export async function updateDoctorSettings(
     prevState: { success?: boolean; error?: string } | null,
@@ -196,8 +195,6 @@ export async function updateDoctorSettings(
     const openingTime = formData.get('openingTime') as string;
     const closingTime = formData.get('closingTime') as string;
 
-    console.log('[ACTION] Updating settings:', { consultationFee, isAvailable, openingTime, closingTime });
-
     if (isNaN(consultationFee) || consultationFee < 0) {
         return { error: 'Please enter a valid consultation fee.' };
     }
@@ -212,10 +209,6 @@ export async function updateDoctorSettings(
                 closingTime
             },
         });
-
-        // Force a refresh of the dashboard data
-        revalidatePath('/doctor');
-        
         return { success: true };
     } catch (error) {
         console.error('Error updating doctor settings:', error);

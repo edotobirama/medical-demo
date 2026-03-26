@@ -7,7 +7,6 @@ import ThemeWrapper from "@/components/ThemeWrapper";
 import MessageNotifier from "@/components/MessageNotifier";
 import VideoCallNotifier from "@/components/VideoCallNotifier";
 import "./globals.css";
-export const dynamic = 'force-dynamic';
 
 // Define fonts
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
