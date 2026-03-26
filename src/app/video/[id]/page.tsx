@@ -54,6 +54,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
     const endedRef = useRef(false);
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
+    const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
     // Resolve params
     useEffect(() => {
@@ -88,11 +89,13 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 }
 
                 localStreamRef.current = stream;
+                setLocalStream(stream);
                 setHasCamera(true);
 
                 // Attach to video element
                 if (localVideoRef.current) {
                     localVideoRef.current.srcObject = stream;
+                    try { await localVideoRef.current.play(); } catch (_) {}
                 }
             } catch (err: any) {
                 if (cancelled) return;
@@ -114,12 +117,13 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         };
     }, []);
 
-    // Re-attach stream to video element when ref becomes available
+    // Re-attach stream to video element when stream or ref becomes available
     useEffect(() => {
         if (localVideoRef.current && localStreamRef.current) {
             localVideoRef.current.srcObject = localStreamRef.current;
+            localVideoRef.current.play().catch(() => {});
         }
-    });
+    }, [localStream]);
 
     // Toggle audio track when muted state changes
     useEffect(() => {
@@ -249,7 +253,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
             }
         };
 
-        const interval = setInterval(sendHeartbeat, 10000); // 10s heartbeat
+        const interval = setInterval(sendHeartbeat, 5000); // 5s heartbeat — keep DB alive
         return () => clearInterval(interval);
     }, [appointmentId, connected, callEnded]);
 
@@ -882,12 +886,13 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 />
             )}
 
-            {/* Live Transcription Panel */}
+            {/* Live Transcription Panel — rendered for BOTH doctor and patient */}
             {connected && appointmentId && (
                 <LiveTranscription
                     appointmentId={appointmentId}
                     isDoctor={isDoctor}
                     isConnected={connected}
+                    localStream={localStream}
                 />
             )}
         </div>

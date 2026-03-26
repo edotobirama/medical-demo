@@ -41,9 +41,10 @@ interface LiveTranscriptionProps {
     appointmentId: string;
     isDoctor: boolean;
     isConnected: boolean;
+    localStream?: MediaStream | null;  // Shared stream from video page
 }
 
-export default function LiveTranscription({ appointmentId, isDoctor, isConnected }: LiveTranscriptionProps) {
+export default function LiveTranscription({ appointmentId, isDoctor, isConnected, localStream }: LiveTranscriptionProps) {
     const [isListening, setIsListening] = useState(false);
     const [selectedLang, setSelectedLang] = useState('en-US');
     const [showLangPicker, setShowLangPicker] = useState(false);
@@ -63,7 +64,12 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
     const recognitionRef = useRef<any>(null); // For Fallback Simulated Engine
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
-    
+    // Track IDs of transcripts saved BY THIS CLIENT — used to preserve correct
+    // speaker label when DB polling returns entries (prevents cross-session misattribution)
+    const mySavedIds = useRef<Set<string>>(new Set());
+    // Local role string derived from the prop — never comes from the session cookie
+    const myRole = isDoctor ? 'DOCTOR' : 'PATIENT';
+
     const { showAlert } = useCustomAlert();
 
     // 1. Session & State Management: Persistence on Reload
@@ -85,7 +91,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         }
     }, [transcripts, interimText]);
 
-    // 2. History Synchronization: Upon reconnection or refresh
+    // 2. History Synchronization: Poll every 3s — deduplicate by ID
     const loadTranscripts = useCallback(async () => {
         if (!appointmentId) return;
         try {
@@ -93,15 +99,28 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
             if (res.ok) {
                 const data = await res.json();
                 if (data.transcripts?.length > 0) {
-                    setTranscripts(data.transcripts.map((t: any) => ({
-                        id: t.id,
-                        text: t.originalText,
-                        translatedText: t.englishText,
-                        speaker: t.speakerRole,
-                        language: t.language,
-                        timestamp: new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        isFinal: true
-                    })));
+                    setTranscripts(prev => {
+                        const existingIds = new Set(prev.map(t => t.id).filter(Boolean));
+                        const newEntries = data.transcripts
+                            .filter((t: any) => !existingIds.has(t.id))
+                            .map((t: any) => ({
+                                id: t.id,
+                                text: t.originalText,
+                                translatedText: t.englishText,
+                                // If this transcript was saved by THIS client, always use
+                                // the local isDoctor-derived role — never trust the DB
+                                // speakerRole which may be wrong when testing with the same
+                                // browser session for both accounts.
+                                speaker: mySavedIds.current.has(t.id) ? myRole : t.speakerRole,
+                                language: t.language,
+                                timestamp: new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                isFinal: true
+                            }));
+                        if (newEntries.length === 0) return prev;
+                        return [...prev, ...newEntries].sort((a: TranscriptEntry, b: TranscriptEntry) =>
+                            a.timestamp.localeCompare(b.timestamp)
+                        );
+                    });
                 }
             }
         } catch (e) {
@@ -133,13 +152,20 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
 
             if (res.ok) {
                 const data = await res.json();
-                if (data.transcript?.englishText) {
+                if (data.transcript?.id) {
+                    // Register this ID as ours so the polling deduplicator
+                    // will always label it with the correct local role
+                    mySavedIds.current.add(data.transcript.id);
+
                     setTranscripts(prev => {
                         const updated = [...prev];
                         const last = updated[updated.length - 1];
                         if (last && last.text === text) {
-                            last.translatedText = data.transcript.englishText;
                             last.id = data.transcript.id;
+                            last.speaker = myRole; // Lock in the correct role
+                            if (data.transcript.englishText) {
+                                last.translatedText = data.transcript.englishText;
+                            }
                         }
                         return updated;
                     });
@@ -222,12 +248,13 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         }
     }, [sessionId, selectedLang, isDoctor, saveTranscript, processBufferedAudio, engineStatus]);
 
-    // Setup Media Recorder Audio Stream (< 1s Delay chunking)
+    // Setup Media Recorder — use shared stream from video page if available
     const startAudioStream = useCallback(async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            // Latency Optimization: 500ms chunking for <1s delay buffering
-            const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            // Prefer the shared stream so we don't double-request mic permissions
+            const stream = localStream || await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+            const recorder = new MediaRecorder(stream, { mimeType });
             
             recorder.ondataavailable = (e) => {
                 if (e.data.size > 0) {
@@ -252,7 +279,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
             console.error("Mic error:", e);
             showAlert('Microphone permission denied.', 'error');
         }
-    }, [connectWebSocket, showAlert]);
+    }, [localStream, connectWebSocket, showAlert]);
 
     const stopAudioStream = useCallback(() => {
         if (mediaRecorderRef.current) {

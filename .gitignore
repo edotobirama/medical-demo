@@ -52,3 +52,4 @@ pg_data/
 
 # user uploaded files
 public/uploads/
+.env*.local

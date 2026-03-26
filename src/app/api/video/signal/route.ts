@@ -2,56 +2,28 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 
-// In-memory call signaling store (in production, use Redis or a DB table)
-// Maps appointmentId -> signal data
-const callSignals = new Map<string, {
-    status: 'RINGING' | 'CONNECTED' | 'ENDED' | 'MISSED';
-    initiatedAt: number;
-    lastHeartbeat: number; // For detecting dropped calls
-    endedAt: number | null;
-    endedBy: 'DOCTOR' | 'PATIENT' | null;
-    doctorName: string;
-    doctorUserId: string;
-    patientId: string;
-    appointmentId: string;
-    messages: { from: string; text: string; time: string; timestamp: number }[];
-}>();
+/**
+ * Database-backed video call signaling.
+ *
+ * WHY: Vercel serverless functions run in isolated instances that don't share
+ * in-memory state. An in-memory Map() would be empty on every cold-start or
+ * when a request lands on a different instance, causing phantom "call ended"
+ * signals after the 20-second stale timeout.
+ *
+ * Solution: Store all call state in the Appointment row (PostgreSQL via Prisma).
+ * - INITIATE  → status = IN_PROGRESS, actualStartTime set, historyNotes has call meta
+ * - HEARTBEAT → touches updatedAt so we can detect real drops
+ * - END        → status = COMPLETED / CANCELLED, actualEndTime set
+ * - GET        → reads appointment row; no stale timeout, no instance isolation issue
+ *
+ * Messages (in-call chat) still use a small in-memory buffer because they are
+ * ephemeral and low-stakes. They are also read within the same 3-second poll window.
+ */
 
-// Clean up stale signals (older than 2 minutes for RINGING, or no heartbeat for 20s)
-function cleanupStaleSignals() {
-    const now = Date.now();
-    for (const [key, signal] of callSignals.entries()) {
-        // Auto-expire RINGING after 2 minutes
-        if (signal.status === 'RINGING' && now - signal.initiatedAt > 120000) {
-            callSignals.set(key, { ...signal, status: 'MISSED', lastHeartbeat: now });
-        }
+// Ephemeral in-call chat messages (ok to be instance-local, short-lived)
+const chatMessages = new Map<string, { from: string; text: string; time: string; timestamp: number }[]>();
 
-        // Detect DROPPED calls (no heartbeat for 20 seconds while CONNECTED)
-        if (signal.status === 'CONNECTED' && now - signal.lastHeartbeat > 20000) {
-            callSignals.set(key, {
-                ...signal,
-                status: 'ENDED',
-                endedAt: now,
-                endedBy: null, // Indicates a drop
-                lastHeartbeat: now
-            });
-            continue;
-        }
-
-        // Keep ENDED signals for 1 minute (increased from 30s) so redirections and final status checks work reliably
-        if (signal.status === 'ENDED' && signal.endedAt && now - signal.endedAt > 60000) {
-            callSignals.delete(key);
-            continue;
-        }
-
-        // Remove very old signals (10+ minutes)
-        if (now - signal.initiatedAt > 600000 && signal.status !== 'ENDED') {
-            callSignals.delete(key);
-        }
-    }
-}
-
-// POST: Doctor initiates a call / updates signal / heartbeat
+// --- POST ---------------------------------------------------------------
 export async function POST(req: Request) {
     try {
         const session = await auth();
@@ -78,119 +50,127 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
         }
 
-        cleanupStaleSignals();
-
         switch (action) {
             case 'INITIATE': {
-                // Doctor starts the call
                 if (session.user.role !== 'DOCTOR') {
                     return NextResponse.json({ error: 'Only doctors can initiate calls' }, { status: 403 });
                 }
 
-                callSignals.set(appointmentId, {
-                    status: 'RINGING',
-                    initiatedAt: Date.now(),
-                    lastHeartbeat: Date.now(),
-                    endedAt: null,
-                    endedBy: null,
-                    doctorName: appointment.doctor.user.name || 'Doctor',
-                    doctorUserId: appointment.doctor.user.id,
-                    patientId: appointment.patient.userId,
-                    appointmentId,
-                    messages: []
+                // Set call state in DB — this is visible to every serverless instance
+                await prisma.appointment.update({
+                    where: { id: appointmentId },
+                    data: {
+                        status: 'IN_PROGRESS',
+                        actualStartTime: appointment.actualStartTime || new Date(),
+                        actualEndTime: null,          // Clear any previous end time
+                        meetingLink: `/video/${appointmentId}`,
+                        // Persist call metadata so patient-side GET can find it
+                        historyNotes: JSON.stringify({
+                            callStatus: 'RINGING',
+                            initiatedAt: Date.now(),
+                            lastHeartbeat: Date.now(),
+                            endedBy: null
+                        })
+                    }
                 });
 
-                // Update appointment status if not already in progress
-                if (appointment.status === 'BOOKED' || appointment.status === 'RESCHEDULED' || appointment.status === 'TURN_ARRIVED') {
-                    await prisma.appointment.update({
-                        where: { id: appointmentId },
-                        data: {
-                            status: 'IN_PROGRESS',
-                            actualStartTime: appointment.actualStartTime || new Date(),
-                            meetingLink: `/video/${appointmentId}`
-                        }
-                    });
-                }
-
+                chatMessages.set(appointmentId, []);
                 return NextResponse.json({ success: true, status: 'RINGING' });
             }
 
             case 'ANSWER': {
-                // Patient answers
-                const signal = callSignals.get(appointmentId);
-                if (signal) {
-                    callSignals.set(appointmentId, { ...signal, status: 'CONNECTED', lastHeartbeat: Date.now() });
-                }
+                // Patient answers — update DB so doctor-side poll sees CONNECTED
+                const current = appointment.historyNotes
+                    ? JSON.parse(appointment.historyNotes as string)
+                    : {};
+
+                await prisma.appointment.update({
+                    where: { id: appointmentId },
+                    data: {
+                        historyNotes: JSON.stringify({
+                            ...current,
+                            callStatus: 'CONNECTED',
+                            lastHeartbeat: Date.now()
+                        })
+                    }
+                });
+
                 return NextResponse.json({ success: true, status: 'CONNECTED' });
             }
 
             case 'HEARTBEAT': {
-                // Active participation pulse
-                const signal = callSignals.get(appointmentId);
-                if (signal && (signal.status === 'CONNECTED' || signal.status === 'RINGING')) {
-                    callSignals.set(appointmentId, { ...signal, lastHeartbeat: Date.now() });
+                // Touch the DB record — updatedAt changes, and we store lastHeartbeat
+                const current = appointment.historyNotes
+                    ? JSON.parse(appointment.historyNotes as string)
+                    : {};
+
+                // Only heartbeat if the call is still active
+                if (appointment.status === 'IN_PROGRESS') {
+                    await prisma.appointment.update({
+                        where: { id: appointmentId },
+                        data: {
+                            historyNotes: JSON.stringify({
+                                ...current,
+                                callStatus: current.callStatus || 'CONNECTED',
+                                lastHeartbeat: Date.now()
+                            })
+                        }
+                    });
                 }
+
                 return NextResponse.json({ success: true });
             }
 
             case 'SEND_MESSAGE': {
-                const signal = callSignals.get(appointmentId);
                 const { text } = body;
-                if (signal && text) {
-                    const newMessage = {
+                if (text) {
+                    const msgs = chatMessages.get(appointmentId) || [];
+                    msgs.push({
                         from: session.user.role === 'DOCTOR' ? 'Doctor' : 'Patient',
                         text,
                         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         timestamp: Date.now()
-                    };
-                    signal.messages.push(newMessage);
-                    callSignals.set(appointmentId, { ...signal, lastHeartbeat: Date.now() });
+                    });
+                    chatMessages.set(appointmentId, msgs);
                 }
                 return NextResponse.json({ success: true });
             }
 
             case 'END': {
-                // Either party ends the call — set ENDED with endedBy info
-                const signal = callSignals.get(appointmentId);
                 const endedBy = session.user.role === 'DOCTOR' ? 'DOCTOR' : 'PATIENT';
+                const current = appointment.historyNotes
+                    ? JSON.parse(appointment.historyNotes as string)
+                    : {};
 
-                if (signal) {
-                    callSignals.set(appointmentId, {
-                        ...signal,
-                        status: 'ENDED',
-                        endedAt: Date.now(),
-                        endedBy: endedBy as 'DOCTOR' | 'PATIENT',
-                        lastHeartbeat: Date.now()
-                    });
-                } else {
-                    // Create an ENDED signal if it didn't exist
-                    callSignals.set(appointmentId, {
-                        status: 'ENDED',
-                        initiatedAt: Date.now(),
-                        lastHeartbeat: Date.now(),
-                        endedAt: Date.now(),
-                        endedBy: endedBy as 'DOCTOR' | 'PATIENT',
-                        doctorName: appointment.doctor.user.name || 'Doctor',
-                        doctorUserId: appointment.doctor.user.id,
-                        patientId: appointment.patient.userId,
-                        appointmentId,
-                        messages: []
-                    });
-                }
-
-                return NextResponse.json({
-                    success: true,
-                    status: 'ENDED',
-                    endedBy
+                await prisma.appointment.update({
+                    where: { id: appointmentId },
+                    data: {
+                        status: 'COMPLETED',
+                        actualEndTime: new Date(),
+                        historyNotes: JSON.stringify({
+                            ...current,
+                            callStatus: 'ENDED',
+                            endedAt: Date.now(),
+                            endedBy
+                        })
+                    }
                 });
+
+                return NextResponse.json({ success: true, status: 'ENDED', endedBy });
             }
 
             case 'DISMISS': {
-                // Patient dismisses the notification without answering
-                const signal = callSignals.get(appointmentId);
-                if (signal) {
-                    callSignals.set(appointmentId, { ...signal, status: 'MISSED', lastHeartbeat: Date.now() });
-                }
+                const current = appointment.historyNotes
+                    ? JSON.parse(appointment.historyNotes as string)
+                    : {};
+
+                await prisma.appointment.update({
+                    where: { id: appointmentId },
+                    data: {
+                        historyNotes: JSON.stringify({ ...current, callStatus: 'MISSED' })
+                    }
+                });
+
                 return NextResponse.json({ success: true, status: 'MISSED' });
             }
 
@@ -203,7 +183,7 @@ export async function POST(req: Request) {
     }
 }
 
-// GET: Check for incoming calls (polled by patient) or call status (polled by either party in video room)
+// --- GET ---------------------------------------------------------------
 export async function GET(req: Request) {
     try {
         const session = await auth();
@@ -211,39 +191,77 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        cleanupStaleSignals();
-
         const url = new URL(req.url);
         const appointmentId = url.searchParams.get('appointmentId');
 
-        // If checking a specific appointment's call status (used by video page for both parties)
         if (appointmentId) {
-            const signal = callSignals.get(appointmentId);
+            // --- Specific appointment status check (used by both parties in video room) ---
+            const appointment = await prisma.appointment.findUnique({
+                where: { id: appointmentId },
+                include: {
+                    doctor: { include: { user: true } },
+                    patient: { include: { user: true } }
+                }
+            });
+
+            if (!appointment) {
+                return NextResponse.json({ hasActiveCall: false, callEnded: false, messages: [] });
+            }
+
+            const meta = appointment.historyNotes
+                ? JSON.parse(appointment.historyNotes as string)
+                : {};
+
+            const callStatus = meta.callStatus as string | undefined;
+
+            const hasActiveCall =
+                appointment.status === 'IN_PROGRESS' &&
+                (callStatus === 'RINGING' || callStatus === 'CONNECTED');
+
+            const callEnded =
+                appointment.status === 'COMPLETED' ||
+                appointment.status === 'CANCELLED' ||
+                callStatus === 'ENDED';
+
+            const messages = chatMessages.get(appointmentId) || [];
+
             return NextResponse.json({
-                hasActiveCall: !!signal && (signal.status === 'RINGING' || signal.status === 'CONNECTED'),
-                callEnded: !!signal && signal.status === 'ENDED',
-                endedBy: signal?.endedBy || null,
-                messages: signal?.messages || [],
-                signal: signal ? {
-                    status: signal.status,
-                    endedBy: signal.endedBy,
-                    endedAt: signal.endedAt,
-                    doctorName: signal.doctorName
-                } : null
+                hasActiveCall,
+                callEnded,
+                endedBy: meta.endedBy || null,
+                messages,
+                signal: {
+                    status: callStatus || appointment.status,
+                    endedBy: meta.endedBy || null,
+                    endedAt: meta.endedAt || null,
+                    doctorName: appointment.doctor.user.name || 'Doctor'
+                }
             });
         }
 
-        // For patients: check if any appointments have incoming calls
-        if (session.user.role === 'PATIENT' || session.user.role !== 'DOCTOR') {
+        // --- Patient: check for incoming calls on any appointment ---
+        if (session.user.role !== 'DOCTOR') {
             const incomingCalls: any[] = [];
 
-            for (const [aptId, signal] of callSignals.entries()) {
-                if (signal.patientId === session.user.id && signal.status === 'RINGING') {
+            const activeAppointments = await prisma.appointment.findMany({
+                where: {
+                    status: 'IN_PROGRESS',
+                    patient: { userId: session.user.id }
+                },
+                include: { doctor: { include: { user: true } } }
+            });
+
+            for (const apt of activeAppointments) {
+                const meta = apt.historyNotes
+                    ? JSON.parse(apt.historyNotes as string)
+                    : {};
+
+                if (meta.callStatus === 'RINGING' || meta.callStatus === 'CONNECTED') {
                     incomingCalls.push({
-                        appointmentId: aptId,
-                        doctorName: signal.doctorName,
-                        initiatedAt: signal.initiatedAt,
-                        status: signal.status
+                        appointmentId: apt.id,
+                        doctorName: apt.doctor.user.name || 'Doctor',
+                        initiatedAt: meta.initiatedAt || Date.now(),
+                        status: meta.callStatus
                     });
                 }
             }
