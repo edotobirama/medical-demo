@@ -64,11 +64,6 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
     const recognitionRef = useRef<any>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
-    // Track IDs confirmed saved by this client
-    const mySavedIds = useRef<Set<string>>(new Set());
-    // Track texts currently being saved (in-flight) — handles the race where
-    // loadTranscripts fetches a DB entry before saveTranscript returns the ID
-    const pendingTexts = useRef<Set<string>>(new Set());
     // Local role — derived from the prop set at server-render time, never from cookies
     const myRole = isDoctor ? 'DOCTOR' : 'PATIENT';
 
@@ -109,14 +104,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
                                 id: t.id,
                                 text: t.originalText,
                                 translatedText: t.englishText,
-                                // Priority order for speaker label:
-                                // 1. If this ID was saved by this client → always use local role
-                                // 2. If this text is currently being saved (in-flight race) → use local role
-                                // 3. Otherwise use what the DB says (another participant's speech)
-                                speaker: (
-                                    mySavedIds.current.has(t.id) ||
-                                    pendingTexts.current.has(t.originalText)
-                                ) ? myRole : t.speakerRole,
+                                speaker: t.speakerRole || 'UNKNOWN', // ✅ FIXED
                                 language: t.language,
                                 timestamp: new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                 isFinal: true
@@ -142,9 +130,6 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
     const saveTranscript = useCallback(async (text: string, language: string) => {
         if (!text.trim()) return;
         setSaving(true);
-        // Register as in-flight BEFORE the async POST so the poll can
-        // correctly label it even if the DB entry arrives first
-        pendingTexts.current.add(text);
         try {
             const res = await fetch('/api/transcription', {
                 method: 'POST',
@@ -161,10 +146,6 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
             if (res.ok) {
                 const data = await res.json();
                 if (data.transcript?.id) {
-                    // Move from pending to confirmed
-                    pendingTexts.current.delete(text);
-                    mySavedIds.current.add(data.transcript.id);
-
                     setTranscripts(prev => {
                         const updated = [...prev];
                         // Find the matching local entry by text and update its ID + lock role
@@ -184,7 +165,6 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         } catch (e) {
             console.error('Failed to save transcript:', e);
         } finally {
-            pendingTexts.current.delete(text); // Always clean up pending
             setSaving(false);
         }
     }, [appointmentId, myRole, sessionId]);
