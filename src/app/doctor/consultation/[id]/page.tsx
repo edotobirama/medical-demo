@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { User, Calendar, Clock, Activity, FileText, ArrowLeft, Video, ShieldAlert } from 'lucide-react';
+import { parseHistoryNotes } from '@/lib/utils/history';
 import EndConsultationButton from '@/components/EndConsultationButton';
 import CallPatientButton from '@/components/CallPatientButton';
 import DoctorFinalizeConsultation from '@/components/DoctorFinalizeConsultation';
@@ -157,8 +158,8 @@ async function ConsultationFetcher({ id }: { id: string }) {
 
                             <div className="bg-secondary/50 rounded-xl p-4">
                                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Prior Context / History Notes</h4>
-                                <p className="text-sm text-foreground italic">
-                                    {appointment.historyNotes || "No historical context attached to this specific booking."}
+                                <p className="text-sm text-foreground italic leading-relaxed">
+                                    {parseHistoryNotes(appointment.historyNotes).notes || "No historical context attached to this specific booking."}
                                 </p>
                             </div>
                         </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { parseHistoryNotes } from '@/lib/utils/history';
 
 // POST: Generate an AI medical report from transcripts and patient data
 export async function POST(req: Request) {
@@ -66,7 +67,7 @@ Doctor: ${appointment.doctor.user.name}
 Specialization: ${appointment.doctor.specialization}
 Appointment Date: ${appointment.requestedTime || appointment.createdAt}
 Issue Description: ${appointment.issueDescription || 'None provided'}
-History Notes: ${appointment.historyNotes || 'None'}
+History Notes: ${parseHistoryNotes(appointment.historyNotes).notes || 'None'}
 
 Consultation Transcript:
 ${transcriptText || 'No transcript available'}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { parseHistoryNotes } from '@/lib/utils/history';
 
 /**
  * Database-backed video call signaling.
@@ -64,8 +65,10 @@ export async function POST(req: Request) {
                         actualStartTime: appointment.actualStartTime || new Date(),
                         actualEndTime: null,          // Clear any previous end time
                         meetingLink: `/video/${appointmentId}`,
-                        // Persist call metadata so patient-side GET can find it
+                        // Preserve original notes if any, hide from UI via JSON
                         historyNotes: JSON.stringify({
+                            ...parseHistoryNotes(appointment.historyNotes).metadata,
+                            _originalNotes: parseHistoryNotes(appointment.historyNotes).notes,
                             callStatus: 'RINGING',
                             initiatedAt: Date.now(),
                             lastHeartbeat: Date.now(),
