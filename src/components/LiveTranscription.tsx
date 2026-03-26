@@ -225,7 +225,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
                     if (data.isFinal && data.text) {
                         const entry: TranscriptEntry = {
                             text: data.text,
-                            speaker: myRole,
+                            speaker: isDoctor ? 'DOCTOR' : 'PATIENT',
                             language: selectedLang.split('-')[0],
                             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                             isFinal: true
