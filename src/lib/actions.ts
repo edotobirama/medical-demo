@@ -5,6 +5,7 @@ import { AuthError } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 
 export async function logoutAction() {
     await signOut({ redirectTo: '/login' });
@@ -209,6 +210,7 @@ export async function updateDoctorSettings(
                 closingTime
             },
         });
+        revalidatePath('/doctor');
         return { success: true };
     } catch (error) {
         console.error('Error updating doctor settings:', error);
