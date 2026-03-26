@@ -10,7 +10,8 @@ import { useSession, signOut } from "next-auth/react";
 export default function Navbar({ transparent = false }: { transparent?: boolean }) {
     const [scrolled, setScrolled] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
+    const isLoading = status === 'loading';
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -81,7 +82,9 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
 
                 {/* Actions */}
                 <div className="hidden lg:flex items-center gap-4">
-                    {session ? (
+                    {isLoading ? (
+                        <div className="w-20 h-8 animate-pulse bg-muted rounded-full" />
+                    ) : session ? (
                         <>
                             <Link href={session.user.role === 'DOCTOR' ? '/doctor' : '/patient'}
                                 className={clsx("text-sm font-semibold flex items-center gap-2", textColorClass)}>
@@ -90,7 +93,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                             </Link>
                             <button
                                 onClick={() => signOut({ callbackUrl: '/' })}
-                                className="text-sm font-semibold text-destructive hover:text-destructive/80 flex items-center gap-2"
+                                className="text-sm font-semibold text-destructive hover:text-destructive/80 flex items-center gap-2 ml-2"
                             >
                                 <LogOut size={16} />
                                 Logout
@@ -101,7 +104,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                             Login
                         </Link>
                     )}
-                    {(!session || (session.user as any)?.role === 'PATIENT') && (
+                    {(!isLoading && (!session || (session.user as any)?.role === 'PATIENT')) && (
                         <Link href="/book" className="h-10 px-6 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-lg shadow-primary/20 flex items-center justify-center font-bold transition-all">
                             Book Appointment
                         </Link>
@@ -124,7 +127,9 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
 
                     <div className="border-t border-border my-2"></div>
 
-                    {session ? (
+                    {isLoading ? (
+                        <div className="w-full h-12 animate-pulse bg-muted rounded-lg" />
+                    ) : session ? (
                         <>
                             <Link href={session.user.role === 'DOCTOR' ? '/doctor' : '/patient'}
                                 className="flex items-center justify-center w-full py-3 bg-secondary text-secondary-foreground rounded-lg font-bold" onClick={() => setIsOpen(false)}>
@@ -140,7 +145,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                     ) : (
                         <Link href="/login" className="flex items-center justify-center w-full py-3 bg-secondary text-secondary-foreground rounded-lg font-bold" onClick={() => setIsOpen(false)}>Login</Link>
                     )}
-                    {(!session || (session.user as any)?.role === 'PATIENT') && (
+                    {(!isLoading && (!session || (session.user as any)?.role === 'PATIENT')) && (
                         <Link href="/book" className="flex items-center justify-center w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 rounded-lg font-bold" onClick={() => setIsOpen(false)}>Book Appointment</Link>
                     )}
                 </div>
