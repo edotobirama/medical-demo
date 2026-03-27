@@ -274,18 +274,31 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
             return () => clearTimeout(timer);
         } else {
             // Patients wait in the Waiting Room until doctor calls
+            let intervalId: ReturnType<typeof setInterval>;
+
             const checkDoctorAvailability = async () => {
                 try {
+                    // If call has already ended locally, stop polling immediately
+                    if (endedRef.current || callEnded) {
+                        clearInterval(intervalId);
+                        return;
+                    }
+
                     const res = await fetch(`/api/video/signal?appointmentId=${appointmentId}`);
                     if (!res.ok) return;
                     const data = await res.json();
 
-                    if (data.hasActiveCall && !connected) {
-                        if (endedRef.current) {
-                            window.location.reload();
-                            return;
-                        }
+                    // If the signal server says the call is over, trigger the end UI
+                    if (data.callEnded && !endedRef.current) {
+                        clearInterval(intervalId);
+                        endedRef.current = true;
+                        setCallEnded(true);
+                        setEndedBy(data.endedBy || null);
+                        setConnected(false);
+                        return;
+                    }
 
+                    if (data.hasActiveCall && !connected && !endedRef.current) {
                         setConnecting(false);
                         setConnected(true);
 
@@ -311,8 +324,9 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 } catch (e) { }
             };
 
-            const interval = setInterval(checkDoctorAvailability, 3000);
-            return () => clearInterval(interval);
+            intervalId = setInterval(checkDoctorAvailability, 3000);
+            checkDoctorAvailability(); // run immediately on mount
+            return () => clearInterval(intervalId);
         }
     }, [appointmentId, session, hasCamera, connected, setupWebRTC]);
 
