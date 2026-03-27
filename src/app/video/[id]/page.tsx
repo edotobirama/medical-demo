@@ -365,33 +365,37 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                         
                         // Process remote SDP Offer/Answer
                         if (role === 'PATIENT' && data.webrtc.offer && pc.signalingState === 'stable') {
-                            const currentOffer = pc.remoteDescription ? JSON.stringify(pc.remoteDescription) : "";
-                            const newOffer = JSON.stringify(data.webrtc.offer);
-                            if (currentOffer !== newOffer) {
-                                await pc.setRemoteDescription(new RTCSessionDescription(data.webrtc.offer));
-                                const answer = await pc.createAnswer();
-                                await pc.setLocalDescription(answer);
-                                await fetch('/api/video/signal', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ appointmentId, action: 'WEBRTC_ANSWER', sdp: pc.localDescription })
-                                }).catch(()=>{});
+                            if (!pc.currentRemoteDescription) {
+                                try {
+                                    await pc.setRemoteDescription(new RTCSessionDescription(data.webrtc.offer));
+                                    const answer = await pc.createAnswer();
+                                    await pc.setLocalDescription(answer);
+                                    await fetch('/api/video/signal', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ appointmentId, action: 'WEBRTC_ANSWER', sdp: pc.localDescription })
+                                    }).catch(()=>{});
+                                } catch (e) { console.error("Patient SDP processing failed:", e); }
                             }
                         } else if (role === 'DOCTOR' && data.webrtc.answer && pc.signalingState === 'have-local-offer') {
-                            await pc.setRemoteDescription(new RTCSessionDescription(data.webrtc.answer));
+                            try {
+                                await pc.setRemoteDescription(new RTCSessionDescription(data.webrtc.answer));
+                            } catch (e) { console.error("Doctor SDP processing failed:", e); }
                         }
 
                         // Process remote ICE Candidates
-                        const remoteCandidates = role === 'DOCTOR' ? data.webrtc.patientCandidates : data.webrtc.doctorCandidates;
-                        if (Array.isArray(remoteCandidates)) {
-                            for (const c of remoteCandidates) {
-                                const hash = JSON.stringify(c);
-                                if (!handledCandidates.current.has(hash)) {
-                                    handledCandidates.current.add(hash);
-                                    try {
-                                        await pc.addIceCandidate(new RTCIceCandidate(c));
-                                    } catch (e) {
-                                        console.error("Failed to add ICE candidate", e);
+                        if (pc.remoteDescription) {
+                            const remoteCandidates = role === 'DOCTOR' ? data.webrtc.patientCandidates : data.webrtc.doctorCandidates;
+                            if (Array.isArray(remoteCandidates)) {
+                                for (const c of remoteCandidates) {
+                                    const hash = JSON.stringify(c);
+                                    if (!handledCandidates.current.has(hash)) {
+                                        handledCandidates.current.add(hash);
+                                        try {
+                                            await pc.addIceCandidate(new RTCIceCandidate(c));
+                                        } catch (e) {
+                                            console.error("Failed to add ICE candidate", e);
+                                        }
                                     }
                                 }
                             }
