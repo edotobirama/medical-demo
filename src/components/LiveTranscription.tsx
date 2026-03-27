@@ -323,14 +323,19 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         startFallbackRecognition();
 
         // Path 2: MediaRecorder → WebSocket (optional/secondary)
+        // IMPORTANT: Reuse the shared localStream from the video page instead of
+        // calling getUserMedia() again. A second getUserMedia() call on some browsers
+        // (especially mobile) can silently steal the mic away from the WebRTC peer
+        // connection, causing both Audio and Transcription to break simultaneously.
         try {
-            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioStream = localStream ?? await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioOnlyStream = new MediaStream(audioStream.getAudioTracks());
             const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
                 ? 'audio/webm;codecs=opus'
                 : MediaRecorder.isTypeSupported('audio/webm')
                     ? 'audio/webm'
                     : 'audio/ogg';
-            const recorder = new MediaRecorder(audioStream, { mimeType });
+            const recorder = new MediaRecorder(audioOnlyStream, { mimeType });
 
             recorder.ondataavailable = (e) => {
                 if (e.data.size > 0) {
@@ -350,7 +355,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
             // Non-critical — Speech Recognition (path 1) is still running
             console.warn('MediaRecorder unavailable (non-critical):', e);
         }
-    }, [startFallbackRecognition, connectWebSocket]);
+    }, [startFallbackRecognition, connectWebSocket, localStream]);
 
     useEffect(() => {
         if (isConnected && !isListening) {

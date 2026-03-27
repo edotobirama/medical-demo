@@ -105,7 +105,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 setTimeout(() => {
                     pc.removeEventListener('icegatheringstatechange', checkState);
                     resolve();
-                }, 2000); // 2 seconds max wait time for ICE
+                }, 4000); // 4 seconds max wait for ICE (more reliable on slow networks)
             }
         });
     };
@@ -131,17 +131,17 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        facingMode: 'user',         // Default front-facing camera
-                        width: { ideal: 3840, min: 1280 },   // Up to 4K, minimum 720p
-                        height: { ideal: 2160, min: 720 },
-                        frameRate: { ideal: 30 }
+                        facingMode: 'user',
+                        width: { ideal: 1280, max: 1280 },   // 720p HD – avoids lag/freeze
+                        height: { ideal: 720, max: 720 },
+                        frameRate: { ideal: 24, max: 30 }
                     },
                     audio: {
                         echoCancellation: true,
                         noiseSuppression: true,
                         autoGainControl: true,
                         sampleRate: 48000,
-                        channelCount: 2
+                        channelCount: 1  // Mono for bandwidth savings
                     }
                 });
 

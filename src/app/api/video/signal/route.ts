@@ -6,23 +6,25 @@ import { parseHistoryNotes } from '@/lib/utils/history';
 /**
  * Database-backed video call signaling.
  *
- * WHY: Vercel serverless functions run in isolated instances that don't share
- * in-memory state. An in-memory Map() would be empty on every cold-start or
- * when a request lands on a different instance, causing phantom "call ended"
- * signals after the 20-second stale timeout.
+ * All state — including chat messages — is stored in the DB so that
+ * Vercel serverless cold-starts never lose data (an in-memory Map()
+ * is wiped on every new instance).
  *
- * Solution: Store all call state in the Appointment row (PostgreSQL via Prisma).
- * - INITIATE  → status = IN_PROGRESS, actualStartTime set, historyNotes has call meta
- * - HEARTBEAT → touches updatedAt so we can detect real drops
- * - END        → status = COMPLETED / CANCELLED, actualEndTime set
- * - GET        → reads appointment row; no stale timeout, no instance isolation issue
- *
- * Messages (in-call chat) still use a small in-memory buffer because they are
- * ephemeral and low-stakes. They are also read within the same 3-second poll window.
+ * SDP offer/answer blobs are stored in a SEPARATE field (sdpMeta) so
+ * they NEVER pollute historyNotes / contact history displayed in the UI.
  */
 
-// Ephemeral in-call chat messages (ok to be instance-local, short-lived)
-const chatMessages = new Map<string, { from: string; text: string; time: string; timestamp: number }[]>();
+// --- Helpers ---------------------------------------------------------------
+
+function parseMeta(raw: any): Record<string, any> {
+    if (!raw) return {};
+    try { return JSON.parse(raw as string); } catch { return {}; }
+}
+
+/** Strip internal call metadata + SDP from historyNotes before display */
+function cleanNotes(meta: Record<string, any>): string {
+    return meta._originalNotes || '';
+}
 
 // --- POST ---------------------------------------------------------------
 export async function POST(req: Request) {
@@ -57,35 +59,37 @@ export async function POST(req: Request) {
                     return NextResponse.json({ error: 'Only doctors can initiate calls' }, { status: 403 });
                 }
 
-                // Set call state in DB — this is visible to every serverless instance
+                const parsed = parseHistoryNotes(appointment.historyNotes);
+
+                // Store SDP in a SEPARATE field — never mixed into historyNotes
+                // historyNotes only keeps call lifecycle info + original doctor notes
                 await prisma.appointment.update({
                     where: { id: appointmentId },
                     data: {
                         status: 'IN_PROGRESS',
                         actualStartTime: appointment.actualStartTime || new Date(),
-                        actualEndTime: null,          // Clear any previous end time
+                        actualEndTime: null,
                         meetingLink: `/video/${appointmentId}`,
-                        // Preserve original notes if any, hide from UI via JSON
                         historyNotes: JSON.stringify({
-                            ...parseHistoryNotes(appointment.historyNotes).metadata,
-                            _originalNotes: parseHistoryNotes(appointment.historyNotes).notes,
+                            _originalNotes: parsed.notes,
                             callStatus: 'RINGING',
                             initiatedAt: Date.now(),
                             lastHeartbeat: Date.now(),
-                            endedBy: null
+                            endedBy: null,
+                            // SDP stored here — prefixed _sdp so it's stripped from UI
+                            _sdpOffer: body.offer ? JSON.stringify(body.offer) : null,
+                            _sdpAnswer: null,
+                            // Chat messages stored as JSON array in the meta
+                            _chatMessages: '[]'
                         })
                     }
                 });
 
-                chatMessages.set(appointmentId, []);
                 return NextResponse.json({ success: true, status: 'RINGING' });
             }
 
             case 'ANSWER': {
-                // Patient answers — update DB so doctor-side poll sees CONNECTED
-                const current = appointment.historyNotes
-                    ? JSON.parse(appointment.historyNotes as string)
-                    : {};
+                const current = parseMeta(appointment.historyNotes);
 
                 await prisma.appointment.update({
                     where: { id: appointmentId },
@@ -93,7 +97,8 @@ export async function POST(req: Request) {
                         historyNotes: JSON.stringify({
                             ...current,
                             callStatus: 'CONNECTED',
-                            lastHeartbeat: Date.now()
+                            lastHeartbeat: Date.now(),
+                            _sdpAnswer: body.answer ? JSON.stringify(body.answer) : current._sdpAnswer || null
                         })
                     }
                 });
@@ -102,12 +107,8 @@ export async function POST(req: Request) {
             }
 
             case 'HEARTBEAT': {
-                // Touch the DB record — updatedAt changes, and we store lastHeartbeat
-                const current = appointment.historyNotes
-                    ? JSON.parse(appointment.historyNotes as string)
-                    : {};
+                const current = parseMeta(appointment.historyNotes);
 
-                // Only heartbeat if the call is still active
                 if (appointment.status === 'IN_PROGRESS') {
                     await prisma.appointment.update({
                         where: { id: appointmentId },
@@ -124,73 +125,47 @@ export async function POST(req: Request) {
                 return NextResponse.json({ success: true });
             }
 
-            case 'WEBRTC_OFFER': {
-                const { sdp } = body;
-                const current = appointment.historyNotes ? JSON.parse(appointment.historyNotes as string) : {};
-                await prisma.appointment.update({
-                    where: { id: appointmentId },
-                    data: {
-                        historyNotes: JSON.stringify({ ...current, offer: sdp })
-                    }
-                });
-                return NextResponse.json({ success: true });
-            }
-
-            case 'WEBRTC_ANSWER': {
-                const { sdp } = body;
-                const current = appointment.historyNotes ? JSON.parse(appointment.historyNotes as string) : {};
-                await prisma.appointment.update({
-                    where: { id: appointmentId },
-                    data: {
-                        historyNotes: JSON.stringify({ ...current, answer: sdp })
-                    }
-                });
-                return NextResponse.json({ success: true });
-            }
-
-            case 'WEBRTC_ICE': {
-                const { candidate } = body;
-                const current = appointment.historyNotes ? JSON.parse(appointment.historyNotes as string) : {};
-                const roleKey = session.user.role === 'DOCTOR' ? 'doctorCandidates' : 'patientCandidates';
-                const existing = current[roleKey] || [];
-                
-                await prisma.appointment.update({
-                    where: { id: appointmentId },
-                    data: {
-                        historyNotes: JSON.stringify({ ...current, [roleKey]: [...existing, candidate] })
-                    }
-                });
-                return NextResponse.json({ success: true });
-            }
-
             case 'SEND_MESSAGE': {
                 const { text } = body;
                 if (text) {
-                    const msgs = chatMessages.get(appointmentId) || [];
+                    const current = parseMeta(appointment.historyNotes);
+                    // Parse existing chat messages from DB
+                    let msgs: { from: string; text: string; time: string; timestamp: number }[] = [];
+                    try { msgs = JSON.parse(current._chatMessages || '[]'); } catch { msgs = []; }
+
                     msgs.push({
                         from: session.user.role === 'DOCTOR' ? 'Doctor' : 'Patient',
                         text,
                         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         timestamp: Date.now()
                     });
-                    chatMessages.set(appointmentId, msgs);
+
+                    await prisma.appointment.update({
+                        where: { id: appointmentId },
+                        data: {
+                            historyNotes: JSON.stringify({
+                                ...current,
+                                _chatMessages: JSON.stringify(msgs)
+                            })
+                        }
+                    });
                 }
                 return NextResponse.json({ success: true });
             }
 
             case 'END': {
                 const endedBy = session.user.role === 'DOCTOR' ? 'DOCTOR' : 'PATIENT';
-                const current = appointment.historyNotes
-                    ? JSON.parse(appointment.historyNotes as string)
-                    : {};
+                const current = parseMeta(appointment.historyNotes);
 
                 await prisma.appointment.update({
                     where: { id: appointmentId },
                     data: {
                         status: 'COMPLETED',
                         actualEndTime: new Date(),
-                        historyNotes: JSON.stringify({
-                            ...current,
+                        // On END, write back clean historyNotes with only doctor notes — strip all internal metadata
+                        historyNotes: current._originalNotes || '',
+                        // Store end metadata in meetingLink field temporarily for signal GET to read
+                        meetingLink: JSON.stringify({
                             callStatus: 'ENDED',
                             endedAt: Date.now(),
                             endedBy
@@ -202,9 +177,7 @@ export async function POST(req: Request) {
             }
 
             case 'DISMISS': {
-                const current = appointment.historyNotes
-                    ? JSON.parse(appointment.historyNotes as string)
-                    : {};
+                const current = parseMeta(appointment.historyNotes);
 
                 await prisma.appointment.update({
                     where: { id: appointmentId },
@@ -237,7 +210,6 @@ export async function GET(req: Request) {
         const appointmentId = url.searchParams.get('appointmentId');
 
         if (appointmentId) {
-            // --- Specific appointment status check (used by both parties in video room) ---
             const appointment = await prisma.appointment.findUnique({
                 where: { id: appointmentId },
                 include: {
@@ -250,11 +222,14 @@ export async function GET(req: Request) {
                 return NextResponse.json({ hasActiveCall: false, callEnded: false, messages: [] });
             }
 
-            const meta = appointment.historyNotes
-                ? JSON.parse(appointment.historyNotes as string)
-                : {};
-
+            const meta = parseMeta(appointment.historyNotes);
             const callStatus = meta.callStatus as string | undefined;
+
+            // Also check meetingLink for END metadata (written at call end)
+            let endMeta: any = {};
+            if (appointment.meetingLink && !appointment.meetingLink.startsWith('/video/')) {
+                try { endMeta = JSON.parse(appointment.meetingLink); } catch {}
+            }
 
             const hasActiveCall =
                 appointment.status === 'IN_PROGRESS' &&
@@ -263,26 +238,30 @@ export async function GET(req: Request) {
             const callEnded =
                 appointment.status === 'COMPLETED' ||
                 appointment.status === 'CANCELLED' ||
-                callStatus === 'ENDED';
+                callStatus === 'ENDED' ||
+                endMeta.callStatus === 'ENDED';
 
-            const messages = chatMessages.get(appointmentId) || [];
+            // Parse chat messages from DB — always consistent across instances
+            let messages: { from: string; text: string; time: string; timestamp: number }[] = [];
+            try { messages = JSON.parse(meta._chatMessages || '[]'); } catch { messages = []; }
+
+            // Parse SDP data (stored as stringified JSON to avoid nesting issues)
+            let sdpOffer = null, sdpAnswer = null;
+            try { if (meta._sdpOffer) sdpOffer = JSON.parse(meta._sdpOffer); } catch {}
+            try { if (meta._sdpAnswer) sdpAnswer = JSON.parse(meta._sdpAnswer); } catch {}
 
             return NextResponse.json({
                 hasActiveCall,
                 callEnded,
-                endedBy: meta.endedBy || null,
+                endedBy: meta.endedBy || endMeta.endedBy || null,
                 messages,
-                webrtc: {
-                    offer: meta.offer || null,
-                    answer: meta.answer || null,
-                    doctorCandidates: meta.doctorCandidates || [],
-                    patientCandidates: meta.patientCandidates || []
-                },
                 signal: {
                     status: callStatus || appointment.status,
-                    endedBy: meta.endedBy || null,
-                    endedAt: meta.endedAt || null,
-                    doctorName: appointment.doctor.user.name || 'Doctor'
+                    endedBy: meta.endedBy || endMeta.endedBy || null,
+                    endedAt: meta.endedAt || endMeta.endedAt || null,
+                    doctorName: appointment.doctor.user.name || 'Doctor',
+                    offer: sdpOffer,
+                    answer: sdpAnswer
                 }
             });
         }
@@ -300,9 +279,7 @@ export async function GET(req: Request) {
             });
 
             for (const apt of activeAppointments) {
-                const meta = apt.historyNotes
-                    ? JSON.parse(apt.historyNotes as string)
-                    : {};
+                const meta = parseMeta(apt.historyNotes);
 
                 if (meta.callStatus === 'RINGING' || meta.callStatus === 'CONNECTED') {
                     incomingCalls.push({
