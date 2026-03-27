@@ -124,6 +124,45 @@ export async function POST(req: Request) {
                 return NextResponse.json({ success: true });
             }
 
+            case 'WEBRTC_OFFER': {
+                const { sdp } = body;
+                const current = appointment.historyNotes ? JSON.parse(appointment.historyNotes as string) : {};
+                await prisma.appointment.update({
+                    where: { id: appointmentId },
+                    data: {
+                        historyNotes: JSON.stringify({ ...current, offer: sdp })
+                    }
+                });
+                return NextResponse.json({ success: true });
+            }
+
+            case 'WEBRTC_ANSWER': {
+                const { sdp } = body;
+                const current = appointment.historyNotes ? JSON.parse(appointment.historyNotes as string) : {};
+                await prisma.appointment.update({
+                    where: { id: appointmentId },
+                    data: {
+                        historyNotes: JSON.stringify({ ...current, answer: sdp })
+                    }
+                });
+                return NextResponse.json({ success: true });
+            }
+
+            case 'WEBRTC_ICE': {
+                const { candidate } = body;
+                const current = appointment.historyNotes ? JSON.parse(appointment.historyNotes as string) : {};
+                const roleKey = session.user.role === 'DOCTOR' ? 'doctorCandidates' : 'patientCandidates';
+                const existing = current[roleKey] || [];
+                
+                await prisma.appointment.update({
+                    where: { id: appointmentId },
+                    data: {
+                        historyNotes: JSON.stringify({ ...current, [roleKey]: [...existing, candidate] })
+                    }
+                });
+                return NextResponse.json({ success: true });
+            }
+
             case 'SEND_MESSAGE': {
                 const { text } = body;
                 if (text) {
@@ -233,6 +272,12 @@ export async function GET(req: Request) {
                 callEnded,
                 endedBy: meta.endedBy || null,
                 messages,
+                webrtc: {
+                    offer: meta.offer || null,
+                    answer: meta.answer || null,
+                    doctorCandidates: meta.doctorCandidates || [],
+                    patientCandidates: meta.patientCandidates || []
+                },
                 signal: {
                     status: callStatus || appointment.status,
                     endedBy: meta.endedBy || null,

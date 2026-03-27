@@ -55,6 +55,12 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+    
+    // WebRTC refs
+    const remoteVideoRef = useRef<HTMLVideoElement>(null);
+    const pcRef = useRef<RTCPeerConnection | null>(null);
+    const handledCandidates = useRef<Set<string>>(new Set());
+    const [remoteStreamReady, setRemoteStreamReady] = useState(false);
 
     // Resolve params
     useEffect(() => {
@@ -237,6 +243,75 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         }
     }, [appointmentId, session]);
 
+    // Initialize WebRTC
+    useEffect(() => {
+        if (!connected || !appointmentId || !localStreamRef.current) return;
+        if (pcRef.current) return; // already initialized
+
+        const pc = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:global.stun.twilio.com:3478' }
+            ]
+        });
+        pcRef.current = pc;
+
+        // Add local tracks to WebRTC
+        localStreamRef.current.getTracks().forEach(track => {
+            pc.addTrack(track, localStreamRef.current!);
+        });
+
+        // Receive remote tracks
+        pc.ontrack = (event) => {
+            if (remoteVideoRef.current && event.streams[0]) {
+                remoteVideoRef.current.srcObject = event.streams[0];
+                setRemoteStreamReady(true);
+            }
+        };
+
+        // ICE candidate gathering
+        pc.onicecandidate = (event) => {
+            if (event.candidate) {
+                fetch('/api/video/signal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        appointmentId, 
+                        action: 'WEBRTC_ICE', 
+                        candidate: event.candidate 
+                    })
+                }).catch(() => {});
+            }
+        };
+
+        // Create Offer for Doctor
+        pc.onnegotiationneeded = async () => {
+            if (session?.user?.role === 'DOCTOR') {
+                try {
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    await fetch('/api/video/signal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            appointmentId, 
+                            action: 'WEBRTC_OFFER', 
+                            sdp: pc.localDescription 
+                        })
+                    });
+                } catch (e) {
+                    console.error("Offer creation failed:", e);
+                }
+            }
+        };
+
+        return () => {
+            pc.close();
+            pcRef.current = null;
+            handledCandidates.current.clear();
+        };
+    }, [connected, appointmentId, session]);
+
     // Reliable Heartbeat: Maintain the session and detect disconnects
     useEffect(() => {
         if (!appointmentId || !connected || callEnded) return;
@@ -282,6 +357,47 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 const res = await fetch(`/api/video/signal?appointmentId=${appointmentId}`);
                 if (!res.ok) return;
                 const data = await res.json();
+
+                if (data.webrtc) {
+                    const pc = pcRef.current;
+                    if (pc) {
+                        const role = session?.user?.role;
+                        
+                        // Process remote SDP Offer/Answer
+                        if (role === 'PATIENT' && data.webrtc.offer && pc.signalingState === 'stable') {
+                            const currentOffer = pc.remoteDescription ? JSON.stringify(pc.remoteDescription) : "";
+                            const newOffer = JSON.stringify(data.webrtc.offer);
+                            if (currentOffer !== newOffer) {
+                                await pc.setRemoteDescription(new RTCSessionDescription(data.webrtc.offer));
+                                const answer = await pc.createAnswer();
+                                await pc.setLocalDescription(answer);
+                                await fetch('/api/video/signal', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ appointmentId, action: 'WEBRTC_ANSWER', sdp: pc.localDescription })
+                                }).catch(()=>{});
+                            }
+                        } else if (role === 'DOCTOR' && data.webrtc.answer && pc.signalingState === 'have-local-offer') {
+                            await pc.setRemoteDescription(new RTCSessionDescription(data.webrtc.answer));
+                        }
+
+                        // Process remote ICE Candidates
+                        const remoteCandidates = role === 'DOCTOR' ? data.webrtc.patientCandidates : data.webrtc.doctorCandidates;
+                        if (Array.isArray(remoteCandidates)) {
+                            for (const c of remoteCandidates) {
+                                const hash = JSON.stringify(c);
+                                if (!handledCandidates.current.has(hash)) {
+                                    handledCandidates.current.add(hash);
+                                    try {
+                                        await pc.addIceCandidate(new RTCIceCandidate(c));
+                                    } catch (e) {
+                                        console.error("Failed to add ICE candidate", e);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 if (data.callEnded && !endedRef.current) {
                     endedRef.current = true;
@@ -628,36 +744,36 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                     </div>
                 ) : (
                     <div className="w-full h-full relative">
-                        {/* Simulated remote video — gradient background with avatar */}
-                        <div className="w-full h-full bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 flex items-center justify-center">
-                            <div className="relative">
-                                {/* Simulated video feed with user avatar */}
-                                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-teal-500/30 to-emerald-500/30 flex items-center justify-center border-4 border-teal-500/20 shadow-2xl shadow-teal-500/10">
-                                    {appointment?.doctorImage && !isDoctor ? (
-                                        <img src={appointment.doctorImage} alt={remoteName} className="w-full h-full object-cover rounded-full" />
-                                    ) : appointment?.patientImage && isDoctor ? (
-                                        <img src={appointment.patientImage} alt={remoteName} className="w-full h-full object-cover rounded-full" />
-                                    ) : (
-                                        <span className="text-5xl md:text-6xl font-bold text-teal-400/80">
-                                            {remoteName?.[0] || '?'}
-                                        </span>
-                                    )}
+                        {/* Actual WebRTC Remote Video */}
+                        <div className="w-full h-full bg-neutral-900 flex items-center justify-center overflow-hidden">
+                            <video 
+                                ref={remoteVideoRef} 
+                                autoPlay 
+                                playsInline 
+                                className={clsx(
+                                    "w-full h-full object-cover transition-opacity duration-500",
+                                    remoteStreamReady ? "opacity-100" : "opacity-0 absolute"
+                                )} 
+                            />
+                            
+                            {/* Fallback avatar if stream connecting or stream missing */}
+                            {!remoteStreamReady && (
+                                <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 flex items-center justify-center">
+                                    <div className="relative">
+                                        <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-teal-500/30 to-emerald-500/30 flex items-center justify-center border-4 border-teal-500/20 shadow-2xl shadow-teal-500/10">
+                                            {appointment?.doctorImage && !isDoctor ? (
+                                                <img src={appointment.doctorImage} alt={remoteName} className="w-full h-full object-cover rounded-full" />
+                                            ) : appointment?.patientImage && isDoctor ? (
+                                                <img src={appointment.patientImage} alt={remoteName} className="w-full h-full object-cover rounded-full" />
+                                            ) : (
+                                                <span className="text-5xl md:text-6xl font-bold text-teal-400/80">
+                                                    {remoteName?.[0] || '?'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                                {/* Animated speaking indicator */}
-                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex items-end gap-1">
-                                    {[1, 2, 3, 4, 5].map(i => (
-                                        <div
-                                            key={i}
-                                            className="w-1 bg-teal-400 rounded-full animate-pulse"
-                                            style={{
-                                                height: `${Math.random() * 12 + 4}px`,
-                                                animationDelay: `${i * 150}ms`,
-                                                animationDuration: '0.8s'
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Remote user name overlay */}
