@@ -38,31 +38,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
         }
 
-        // Determine speaker role:
-        // The client sends `speakerRole` derived from the page's server-side-rendered
-        // isDoctor prop — which is authoritative at page-load time and is NOT affected
-        // by session cookie sharing between browser tabs (a common testing scenario).
-        // We validate it against the appointment's actual participants for security.
-        const userId = (session.user as any).id;
-        const isDoctorParticipant = appointment.doctor.user.id === userId;
-        const isPatientParticipant = appointment.patient.user.id === userId;
-
-        if (!isDoctorParticipant && !isPatientParticipant) {
-             return NextResponse.json({ error: 'User not participant in this appointment' }, { status: 403 });
-        }
-
-        // Use the client-claimed role as it's view-dependent
-        // and is not affected by shared session cookies between tabs.
-        // If the user *could* be either role (shared session), we trust the client's own page context.
-        let resolvedRole: 'DOCTOR' | 'PATIENT';
-        if (speakerRole === 'PATIENT' && isPatientParticipant) {
-            resolvedRole = 'PATIENT';
-        } else if (speakerRole === 'DOCTOR' && isDoctorParticipant) {
-            resolvedRole = 'DOCTOR';
-        } else {
-            // Otherwise default to the server-known role
-            resolvedRole = isDoctorParticipant ? 'DOCTOR' : 'PATIENT';
-        }
+        // Guarantee role strictly matches the server-validated JWT session role.
+        // This makes it physically impossible for the patient's device to accidentally register as DOCTOR.
+        const resolvedRole = (session.user as any).role === 'DOCTOR' ? 'DOCTOR' : 'PATIENT';
 
         const transcript = await (prisma as any).consultationTranscript.create({
             data: {
