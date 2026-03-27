@@ -55,12 +55,60 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-    
-    // WebRTC refs
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
-    const pcRef = useRef<RTCPeerConnection | null>(null);
-    const handledCandidates = useRef<Set<string>>(new Set());
-    const [remoteStreamReady, setRemoteStreamReady] = useState(false);
+    const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+
+    // Helper to setup RTCPeerConnection
+    const setupWebRTC = useCallback(() => {
+        if (peerConnectionRef.current) return peerConnectionRef.current;
+
+        const pc = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        });
+
+        if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach(track => {
+                pc.addTrack(track, localStreamRef.current!);
+            });
+        }
+
+        pc.ontrack = (event) => {
+            if (event.streams && event.streams[0]) {
+                setRemoteStream(event.streams[0]);
+                if (remoteVideoRef.current) {
+                    remoteVideoRef.current.srcObject = event.streams[0];
+                }
+            }
+        };
+
+        peerConnectionRef.current = pc;
+        return pc;
+    }, []);
+
+    // Helper for disabled trickle ICE (gather all candidates before sending SDP)
+    const waitForIceGathering = (pc: RTCPeerConnection) => {
+        return new Promise<void>((resolve) => {
+            if (pc.iceGatheringState === 'complete') {
+                resolve();
+            } else {
+                const checkState = () => {
+                    if (pc.iceGatheringState === 'complete') {
+                        pc.removeEventListener('icegatheringstatechange', checkState);
+                        resolve();
+                    }
+                };
+                pc.addEventListener('icegatheringstatechange', checkState);
+                setTimeout(() => {
+                    pc.removeEventListener('icegatheringstatechange', checkState);
+                    resolve();
+                }, 2000); // 2 seconds max wait time for ICE
+            }
+        });
+    };
 
     // Resolve params
     useEffect(() => {
@@ -194,18 +242,25 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
 
     // WebRTC Connection / Waiting Room Logic
     useEffect(() => {
-        if (!appointmentId) return;
+        if (!appointmentId || !hasCamera) return; // Wait until camera is active to attach streams
 
         if (session?.user?.role === 'DOCTOR') {
             // Doctors initiate the call
-            const timer = setTimeout(() => {
+            const timer = setTimeout(async () => {
+                if (connected) return;
                 setConnecting(false);
                 setConnected(true);
-                // Call INITIATE
+                
+                // WebRTC Offer
+                const pc = setupWebRTC();
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                await waitForIceGathering(pc);
+
                 fetch('/api/video/signal', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ appointmentId, action: 'INITIATE' })
+                    body: JSON.stringify({ appointmentId, action: 'INITIATE', offer: pc.localDescription })
                 }).catch(() => { });
             }, 1500);
             return () => clearTimeout(timer);
@@ -217,9 +272,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                     if (!res.ok) return;
                     const data = await res.json();
 
-                    if (data.hasActiveCall) {
-                        // If the call had previously ended and the doctor is calling AGAIN,
-                        // reload the page to cleanly re-initialize the camera and reset state.
+                    if (data.hasActiveCall && !connected) {
                         if (endedRef.current) {
                             window.location.reload();
                             return;
@@ -228,12 +281,24 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                         setConnecting(false);
                         setConnected(true);
 
-                        // Answer the call automatically
-                        fetch('/api/video/signal', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ appointmentId, action: 'ANSWER' })
-                        }).catch(() => { });
+                        // WebRTC Answer
+                        const pc = setupWebRTC();
+                        if (data.signal?.offer) {
+                            try {
+                                await pc.setRemoteDescription(new RTCSessionDescription(data.signal.offer));
+                                const answer = await pc.createAnswer();
+                                await pc.setLocalDescription(answer);
+                                await waitForIceGathering(pc);
+
+                                fetch('/api/video/signal', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ appointmentId, action: 'ANSWER', answer: pc.localDescription })
+                                }).catch(() => { });
+                            } catch (e) {
+                                console.error('Patient WebRTC setup failed', e);
+                            }
+                        }
                     }
                 } catch (e) { }
             };
@@ -241,76 +306,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
             const interval = setInterval(checkDoctorAvailability, 3000);
             return () => clearInterval(interval);
         }
-    }, [appointmentId, session]);
-
-    // Initialize WebRTC
-    useEffect(() => {
-        if (!connected || !appointmentId || !localStream) return;
-        if (pcRef.current) return; // already initialized
-
-        const pc = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:global.stun.twilio.com:3478' }
-            ]
-        });
-        pcRef.current = pc;
-
-        // Add local tracks to WebRTC
-        localStream.getTracks().forEach(track => {
-            pc.addTrack(track, localStream);
-        });
-
-        // Receive remote tracks
-        pc.ontrack = (event) => {
-            if (remoteVideoRef.current && event.streams[0]) {
-                remoteVideoRef.current.srcObject = event.streams[0];
-                setRemoteStreamReady(true);
-            }
-        };
-
-        // ICE candidate gathering
-        pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                fetch('/api/video/signal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        appointmentId, 
-                        action: 'WEBRTC_ICE', 
-                        candidate: event.candidate 
-                    })
-                }).catch(() => {});
-            }
-        };
-
-        // Create Offer for Doctor
-        pc.onnegotiationneeded = async () => {
-            if (session?.user?.role === 'DOCTOR') {
-                try {
-                    const offer = await pc.createOffer();
-                    await pc.setLocalDescription(offer);
-                    await fetch('/api/video/signal', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            appointmentId, 
-                            action: 'WEBRTC_OFFER', 
-                            sdp: pc.localDescription 
-                        })
-                    });
-                } catch (e) {
-                    console.error("Offer creation failed:", e);
-                }
-            }
-        };
-
-        return () => {
-            pc.close();
-            pcRef.current = null;
-            handledCandidates.current.clear();
-        };
-    }, [connected, appointmentId, session, localStream]);
+    }, [appointmentId, session, hasCamera, connected, setupWebRTC]);
 
     // Reliable Heartbeat: Maintain the session and detect disconnects
     useEffect(() => {
@@ -358,65 +354,22 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 if (!res.ok) return;
                 const data = await res.json();
 
-                if (data.webrtc) {
-                    const pc = pcRef.current;
-                    if (pc) {
-                        const role = session?.user?.role;
-                        
-                        // Process remote SDP Offer/Answer
-                        if (role === 'PATIENT' && data.webrtc.offer && pc.signalingState === 'stable') {
-                            if (!pc.currentRemoteDescription) {
-                                try {
-                                    await pc.setRemoteDescription(new RTCSessionDescription(data.webrtc.offer));
-                                    const answer = await pc.createAnswer();
-                                    await pc.setLocalDescription(answer);
-                                    await fetch('/api/video/signal', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ appointmentId, action: 'WEBRTC_ANSWER', sdp: pc.localDescription })
-                                    }).catch(()=>{});
-                                } catch (e) { console.error("Patient SDP processing failed:", e); }
-                            }
-                        } else if (role === 'DOCTOR' && data.webrtc.answer && pc.signalingState === 'have-local-offer') {
-                            try {
-                                await pc.setRemoteDescription(new RTCSessionDescription(data.webrtc.answer));
-                            } catch (e) { console.error("Doctor SDP processing failed:", e); }
-                        }
-
-                        // Process remote ICE Candidates
-                        if (pc.remoteDescription) {
-                            const remoteCandidates = role === 'DOCTOR' ? data.webrtc.patientCandidates : data.webrtc.doctorCandidates;
-                            if (Array.isArray(remoteCandidates)) {
-                                for (const c of remoteCandidates) {
-                                    const hash = JSON.stringify(c);
-                                    if (!handledCandidates.current.has(hash)) {
-                                        handledCandidates.current.add(hash);
-                                        try {
-                                            await pc.addIceCandidate(new RTCIceCandidate(c));
-                                        } catch (e) {
-                                            console.error("Failed to add ICE candidate", e);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
                 if (data.callEnded && !endedRef.current) {
                     endedRef.current = true;
-                    // Global Signal Received: The other party or system terminated the call
                     setCallEnded(true);
                     setEndedBy(data.endedBy || null);
                     setConnected(false);
 
-                    // Force media stream termination on this device immediately
                     if (localStreamRef.current) {
                         localStreamRef.current.getTracks().forEach(track => {
                             track.stop();
                             track.enabled = false;
                         });
                         localStreamRef.current = null;
+                    }
+                    if (peerConnectionRef.current) {
+                        peerConnectionRef.current.close();
+                        peerConnectionRef.current = null;
                     }
 
                     if (durationRef.current) {
@@ -425,18 +378,27 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                     }
                 }
 
-                // Sync messages if there are new ones
+                // Doctor checks for Answer
+                if (session?.user?.role === 'DOCTOR' && peerConnectionRef.current && data.signal?.answer) {
+                    const pc = peerConnectionRef.current;
+                    if (!pc.currentRemoteDescription) {
+                        try {
+                            await pc.setRemoteDescription(new RTCSessionDescription(data.signal.answer));
+                        } catch (e) {
+                            console.error('Doctor failed to set remote description', e);
+                        }
+                    }
+                }
+
                 if (data.messages && data.messages.length > chatMessages.length) {
                     setChatMessages(data.messages);
                 }
-            } catch (e) {
-                // Silent fail
-            }
+            } catch (e) { }
         };
 
         const interval = setInterval(checkCallStatus, 3000);
         return () => clearInterval(interval);
-    }, [appointmentId, connected, callEnded]);
+    }, [appointmentId, connected, callEnded, session]);
 
     // Redirect countdown after call ends
     useEffect(() => {
@@ -518,6 +480,10 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 track.enabled = false; // Force immediate disable
             });
             localStreamRef.current = null;
+        }
+        if (peerConnectionRef.current) {
+            peerConnectionRef.current.close();
+            peerConnectionRef.current = null;
         }
 
         // Immediately update local state for instant UI feedback
@@ -748,22 +714,19 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                     </div>
                 ) : (
                     <div className="w-full h-full relative">
-                        {/* Actual WebRTC Remote Video */}
-                        <div className="w-full h-full bg-neutral-900 flex items-center justify-center overflow-hidden">
-                            <video 
-                                ref={remoteVideoRef} 
-                                autoPlay 
-                                playsInline 
-                                className={clsx(
-                                    "w-full h-full object-cover transition-opacity duration-500",
-                                    remoteStreamReady ? "opacity-100" : "opacity-0 absolute"
-                                )} 
-                            />
-                            
-                            {/* Fallback avatar if stream connecting or stream missing */}
-                            {!remoteStreamReady && (
+                        {/* Remote User Video area */}
+                        <div className="w-full h-full bg-neutral-900 flex items-center justify-center relative">
+                            {remoteStream ? (
+                                <video
+                                    ref={remoteVideoRef}
+                                    autoPlay
+                                    playsInline
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
                                 <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 flex items-center justify-center">
                                     <div className="relative">
+                                        {/* Avatar fallback */}
                                         <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-teal-500/30 to-emerald-500/30 flex items-center justify-center border-4 border-teal-500/20 shadow-2xl shadow-teal-500/10">
                                             {appointment?.doctorImage && !isDoctor ? (
                                                 <img src={appointment.doctorImage} alt={remoteName} className="w-full h-full object-cover rounded-full" />
@@ -775,15 +738,29 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                                                 </span>
                                             )}
                                         </div>
+                                        {/* Animated speaking indicator */}
+                                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex items-end gap-1">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <div
+                                                    key={i}
+                                                    className="w-1 bg-teal-400 rounded-full animate-pulse"
+                                                    style={{
+                                                        height: `${Math.random() * 12 + 4}px`,
+                                                        animationDelay: `${i * 150}ms`,
+                                                        animationDuration: '0.8s'
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             )}
-                        </div>
 
-                        {/* Remote user name overlay */}
-                        <div className="absolute bottom-28 md:bottom-32 left-6 md:left-8 bg-black/60 px-4 py-2 rounded-lg backdrop-blur-sm border border-neutral-700/30">
-                            <span className="font-semibold text-lg text-white">{remoteName}</span>
-                            <span className="text-teal-400 ml-2 font-medium text-sm">{isDoctor ? '' : 'Host'}</span>
+                            {/* Remote user name overlay */}
+                            <div className="absolute bottom-28 md:bottom-32 left-6 md:left-8 bg-black/60 px-4 py-2 rounded-lg backdrop-blur-sm border border-neutral-700/30 z-10">
+                                <span className="font-semibold text-lg text-white">{remoteName}</span>
+                                <span className="text-teal-400 ml-2 font-medium text-sm">{isDoctor ? '' : 'Host'}</span>
+                            </div>
                         </div>
                     </div>
                 )}
