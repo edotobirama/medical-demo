@@ -110,6 +110,14 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         });
     };
 
+    // Attach remote stream whenever it becomes available or ref remounts
+    useEffect(() => {
+        if (remoteVideoRef.current && remoteStream) {
+            remoteVideoRef.current.srcObject = remoteStream;
+            remoteVideoRef.current.play().catch(() => {});
+        }
+    }, [remoteStream]);
+
     // Resolve params
     useEffect(() => {
         params.then(p => setAppointmentId(p.id));
@@ -177,7 +185,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
             localVideoRef.current.srcObject = localStreamRef.current;
             localVideoRef.current.play().catch(() => {});
         }
-    }, [localStream]);
+    }, [localStream, videoOff]);
 
     // Toggle audio track when muted state changes
     useEffect(() => {
