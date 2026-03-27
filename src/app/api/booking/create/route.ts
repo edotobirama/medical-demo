@@ -5,7 +5,7 @@ import { auth } from '@/auth';
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { doctorId, requestedTime, type, issueDescription } = body;
+        const { doctorId, requestedTime, type, issueDescription, localTime } = body;
 
         const session = await auth();
         if (!session || !session.user || !session.user.email) {
@@ -80,7 +80,13 @@ export async function POST(req: Request) {
             const openMins = openH * 60 + openM;
             const closeMins = closeH * 60 + closeM;
 
-            const startMins = reqTime.getHours() * 60 + reqTime.getMinutes();
+            let startMins: number;
+            if (localTime) {
+                const [reqH, reqM] = localTime.split(':').map(Number);
+                startMins = reqH * 60 + reqM;
+            } else {
+                startMins = reqTime.getHours() * 60 + reqTime.getMinutes();
+            }
             const endMins = startMins + estimatedDuration;
 
             if (startMins < openMins || endMins > closeMins) {

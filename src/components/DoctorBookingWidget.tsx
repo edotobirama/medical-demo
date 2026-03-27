@@ -150,6 +150,7 @@ export default function DoctorBookingWidget({
                     doctorId,
                     type: bookingType, // 'in-person' or 'digital'
                     requestedTime: timestamp,
+                    localTime: requestedTime, // Pass literal local time to prevent UTC offset bugs
                     issueDescription: issue
                 })
             });
