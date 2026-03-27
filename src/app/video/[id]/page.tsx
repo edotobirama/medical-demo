@@ -245,7 +245,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
 
     // Initialize WebRTC
     useEffect(() => {
-        if (!connected || !appointmentId || !localStreamRef.current) return;
+        if (!connected || !appointmentId || !localStream) return;
         if (pcRef.current) return; // already initialized
 
         const pc = new RTCPeerConnection({
@@ -257,8 +257,8 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         pcRef.current = pc;
 
         // Add local tracks to WebRTC
-        localStreamRef.current.getTracks().forEach(track => {
-            pc.addTrack(track, localStreamRef.current!);
+        localStream.getTracks().forEach(track => {
+            pc.addTrack(track, localStream);
         });
 
         // Receive remote tracks
@@ -310,7 +310,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
             pcRef.current = null;
             handledCandidates.current.clear();
         };
-    }, [connected, appointmentId, session]);
+    }, [connected, appointmentId, session, localStream]);
 
     // Reliable Heartbeat: Maintain the session and detect disconnects
     useEffect(() => {
