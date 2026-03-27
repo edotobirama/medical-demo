@@ -27,9 +27,13 @@ export function parseHistoryNotes(rawNotes: string | null): { notes: string; met
                 // Prioritize _originalNotes if provided
                 let notes = _originalNotes || '';
                 
-                // Append any other unknown fields as text
-                if (Object.keys(rest).length > 0) {
-                    const extra = JSON.stringify(rest);
+                // Strip ALL underscore-prefixed internal keys (_sdpOffer, _sdpAnswer, _chatMessages, etc.)
+                // Only append genuinely unknown display fields (non-internal)
+                const displayFields = Object.fromEntries(
+                    Object.entries(rest).filter(([k]) => !k.startsWith('_'))
+                );
+                if (Object.keys(displayFields).length > 0) {
+                    const extra = JSON.stringify(displayFields);
                     notes = notes ? `${notes}\n\n${extra}` : extra;
                 }
                 
