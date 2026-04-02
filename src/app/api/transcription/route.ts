@@ -31,7 +31,7 @@ export async function POST(req: Request) {
                         body: JSON.stringify({
                             contents: [{
                                 parts: [
-                                    { text: `Transcribe this medical audio accurately. It is spoken in ${language}. Output ONLY the transcribed text, nothing else. No formatting.` },
+                                    { text: `Transcribe the spoken words in this audio exactly. It is spoken in ${language}. Output ONLY the exact transcribed text, nothing else. Do not add formatting. If there is no active speech, silence, or just background noise, output exactly the word "[SILENCE]" and nothing else.` },
                                     { inlineData: { mimeType: mimeType || 'audio/webm', data: audioBase64 } }
                                 ]
                             }]
@@ -41,7 +41,11 @@ export async function POST(req: Request) {
                         const data = await response.json();
                         const extracted = data.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (extracted && extracted.trim().length > 0) {
-                            transcribedText = extracted.trim();
+                            if (!extracted.includes('[SILENCE]')) {
+                                transcribedText = extracted.trim();
+                            } else {
+                                transcribedText = null;
+                            }
                         }
                     }
                 } catch(e) {

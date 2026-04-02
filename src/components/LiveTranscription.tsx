@@ -299,7 +299,8 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
                 clearInterval((mediaRecorderRef as any).flushInterval);
             }
             mediaRecorderRef.current.stop();
-            // IMPORTANT: Do NOT stop the tracks because they are shared with the WebRTC peer connection!
+            // Since we clone tracks for MediaRecorder now, it's 100% safe and required to stop them
+            mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
             mediaRecorderRef.current = null;
         }
         if (recognitionRef.current) {
@@ -336,7 +337,12 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
 
         try {
             const audioStream = localStream ?? await navigator.mediaDevices.getUserMedia({ audio: true });
-            const audioOnlyStream = new MediaStream(audioStream.getAudioTracks());
+            
+            // CRITICAL FIX: Clone the tracks! If we don't clone on Mobile (iOS), the MediaRecorder
+            // aggressively steals the hardware microphone context, muting the WebRTC Peer connection!
+            const clonedTracks = audioStream.getAudioTracks().map(t => t.clone());
+            const audioOnlyStream = new MediaStream(clonedTracks);
+            
             const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
                 ? 'audio/webm;codecs=opus'
                 : MediaRecorder.isTypeSupported('audio/webm')
