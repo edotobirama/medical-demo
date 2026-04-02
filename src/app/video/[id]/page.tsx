@@ -25,6 +25,8 @@ interface AppointmentData {
     status: string;
     specialization: string;
     issueDescription: string | null;
+    isDoctorUser?: boolean;
+    isPatientUser?: boolean;
 }
 
 export default function VideoCallPage({ params }: { params: Promise<{ id: string }> }) {
@@ -543,7 +545,9 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         if (!chatInput.trim()) return;
 
         const text = chatInput.trim();
-        const from = session?.user?.role === 'DOCTOR' ? 'Doctor' : 'You';
+        // derive the real role from appointment if possible
+        const isRealDoctor = appointment ? !!appointment.isDoctorUser : session?.user?.role === 'DOCTOR';
+        const from = isRealDoctor ? 'Doctor' : 'You';
 
         // Optimistic UI update
         setChatMessages(prev => [...prev, {
@@ -565,7 +569,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         }
     };
 
-    const isDoctor = session?.user?.role === 'DOCTOR';
+    const isDoctor = appointment ? !!appointment.isDoctorUser : session?.user?.role === 'DOCTOR';
     const remoteName = appointment
         ? (isDoctor ? appointment.patientName : appointment.doctorName)
         : (isDoctor ? 'Patient' : 'Doctor');
@@ -1010,7 +1014,7 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
                 <LiveTranscription
                     appointmentId={appointmentId}
                     isDoctor={isDoctor}
-                    isConnected={connected}
+                    isConnected={connected && !muted}
                     localStream={localStream}
                 />
             )}

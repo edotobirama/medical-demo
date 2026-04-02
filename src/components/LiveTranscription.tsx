@@ -296,7 +296,7 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
     const stopAudioStream = useCallback(() => {
         if (mediaRecorderRef.current) {
             mediaRecorderRef.current.stop();
-            mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
+            // IMPORTANT: Do NOT stop the tracks because they are shared with the WebRTC peer connection!
             mediaRecorderRef.current = null;
         }
         if (recognitionRef.current) {

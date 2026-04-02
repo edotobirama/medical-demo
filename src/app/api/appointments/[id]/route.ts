@@ -36,6 +36,8 @@ export async function GET(
 
         return NextResponse.json({
             id: appointment.id,
+            isDoctorUser,
+            isPatientUser,
             doctorName: appointment.doctor.user.name || 'Doctor',
             patientName: appointment.patient.user.name || 'Patient',
             doctorImage: appointment.doctor.user.image,
