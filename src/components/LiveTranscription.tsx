@@ -295,6 +295,9 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
 
     const stopAudioStream = useCallback(() => {
         if (mediaRecorderRef.current) {
+            if ((mediaRecorderRef as any).flushInterval) {
+                clearInterval((mediaRecorderRef as any).flushInterval);
+            }
             mediaRecorderRef.current.stop();
             // IMPORTANT: Do NOT stop the tracks because they are shared with the WebRTC peer connection!
             mediaRecorderRef.current = null;
@@ -322,11 +325,15 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
         // Path 1: Web Speech API (primary — always starts)
         startFallbackRecognition();
 
-        // Path 2: MediaRecorder → WebSocket (optional/secondary)
-        // IMPORTANT: Reuse the shared localStream from the video page instead of
-        // calling getUserMedia() again. A second getUserMedia() call on some browsers
-        // (especially mobile) can silently steal the mic away from the WebRTC peer
-        // connection, causing both Audio and Transcription to break simultaneously.
+        // Path 2: MediaRecorder → Audio API chunks
+        // ONLY execute this heavy fallback if we are on Mobile (where hardware constraints 
+        // aggressively kill the Web Speech API during WebRTC sessions) or on unsupported browsers.
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (SpeechRecognition && !isMobile) {
+             return; // Doctor on Chrome uses native API successfully without double-transcription
+        }
+
         try {
             const audioStream = localStream ?? await navigator.mediaDevices.getUserMedia({ audio: true });
             const audioOnlyStream = new MediaStream(audioStream.getAudioTracks());
@@ -337,23 +344,56 @@ export default function LiveTranscription({ appointmentId, isDoctor, isConnected
                     : 'audio/ogg';
             const recorder = new MediaRecorder(audioOnlyStream, { mimeType });
 
+            let chunkBuffer: Blob[] = [];
             recorder.ondataavailable = (e) => {
                 if (e.data.size > 0) {
-                    if (wsRef.current?.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(e.data);
-                    } else {
-                        audioBufferRef.current.push(e.data);
-                        setBufferCount(audioBufferRef.current.length);
+                    chunkBuffer.push(e.data);
+                    
+                    // Buffer roughly 4 seconds of audio before sending for transcription
+                    if (chunkBuffer.length >= 8) {
+                        const combinedBlob = new Blob(chunkBuffer, { type: mimeType });
+                        chunkBuffer = [];
+                        
+                        const reader = new FileReader();
+                        reader.readAsDataURL(combinedBlob);
+                        reader.onloadend = async () => {
+                            const base64data = (reader.result as string).split(',')[1];
+                            try {
+                                const res = await fetch('/api/transcription', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        appointmentId,
+                                        audioBase64: base64data,
+                                        mimeType,
+                                        language: selectedLang,
+                                        speakerRole: myRole,
+                                        sessionId
+                                    })
+                                });
+                            } catch(err) {
+                                console.error('Audio POST error', err);
+                            }
+                        };
                     }
                 }
             };
 
             recorder.start(500);
             mediaRecorderRef.current = recorder;
-            connectWebSocket();
+            
+            // Force flush for iOS Safari which ignores start(timeslice)
+            const flushInterval = setInterval(() => {
+                if (mediaRecorderRef.current?.state === 'recording') {
+                    mediaRecorderRef.current.requestData();
+                }
+            }, 4000);
+            
+            // Attach interval ID to the ref for cleanup
+            (mediaRecorderRef as any).flushInterval = flushInterval;
+
         } catch (e) {
-            // Non-critical — Speech Recognition (path 1) is still running
-            console.warn('MediaRecorder unavailable (non-critical):', e);
+            console.warn('MediaRecorder unavailable:', e);
         }
     }, [startFallbackRecognition, connectWebSocket, localStream]);
 

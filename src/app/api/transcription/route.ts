@@ -13,16 +13,51 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { appointmentId, text, language, speakerRole } = body;
+        const { appointmentId, text, audioBase64, mimeType, language, speakerRole } = body;
 
-        if (!appointmentId || !text) {
-            return NextResponse.json({ error: 'Missing appointmentId or text' }, { status: 400 });
+        if (!appointmentId || (!text && !audioBase64)) {
+            return NextResponse.json({ error: 'Missing appointmentId or content' }, { status: 400 });
+        }
+
+        let transcribedText = text;
+
+        if (audioBase64) {
+            const apiKey = process.env['GEMINI_API_KEY'] || process.env.GEMINI_API_KEY;
+            if (apiKey) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: `Transcribe this medical audio accurately. It is spoken in ${language}. Output ONLY the transcribed text, nothing else. No formatting.` },
+                                    { inlineData: { mimeType: mimeType || 'audio/webm', data: audioBase64 } }
+                                ]
+                            }]
+                        })
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        const extracted = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (extracted && extracted.trim().length > 0) {
+                            transcribedText = extracted.trim();
+                        }
+                    }
+                } catch(e) {
+                    console.error('Audio transcription error:', e);
+                }
+            }
+        }
+
+        if (!transcribedText) {
+             return NextResponse.json({ error: 'No transcribable audio or text' }, { status: 400 });
         }
 
         // Translate to English if not English
         let englishText: string | null = null;
-        if (language && language !== 'en') {
-            englishText = await translateToEnglish(text, language);
+        if (language && language !== 'en' && language !== 'en-US') {
+            englishText = await translateToEnglish(transcribedText, language);
         }
 
         // Validate the appointment exists and the user is a participant
@@ -55,7 +90,7 @@ export async function POST(req: Request) {
         const transcript = await (prisma as any).consultationTranscript.create({
             data: {
                 appointmentId,
-                originalText: text,
+                originalText: transcribedText,
                 language: language || 'en',
                 englishText,
                 speakerRole: resolvedRole,
