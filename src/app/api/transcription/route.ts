@@ -38,9 +38,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
         }
 
-        // Guarantee role strictly matches the server-validated JWT session role.
-        // This makes it physically impossible for the patient's device to accidentally register as DOCTOR.
-        const resolvedRole = (session.user as any).role === 'DOCTOR' ? 'DOCTOR' : 'PATIENT';
+        // Guarantee role strictly matches the user's role in this specific appointment.
+        // This correctly handles cases where a tester with a 'DOCTOR' role joins as a patient.
+        let resolvedRole = 'PATIENT';
+        const userId = (session.user as any).id;
+        
+        if (appointment.doctor?.userId === userId) {
+            resolvedRole = 'DOCTOR';
+        } else if (appointment.patient?.userId === userId) {
+            resolvedRole = 'PATIENT';
+        } else {
+            // Fallback to the provided speaker role or session system role
+            resolvedRole = speakerRole === 'DOCTOR' ? 'DOCTOR' : 'PATIENT';
+        }
 
         const transcript = await (prisma as any).consultationTranscript.create({
             data: {
